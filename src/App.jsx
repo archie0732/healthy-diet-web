@@ -860,7 +860,7 @@ const AboutView = () => {
       name: 'Arch1e',
       role: '網頁前端與伺服器後端設計',
       desc: '專注於 React 前端介面架構與高效能的 Rust/Flask API 後端開發。',
-      image: '/team1.png'
+      image: '/team1.webp'
     },
     {
       name: 'kamiya',
