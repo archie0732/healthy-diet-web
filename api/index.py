@@ -22,9 +22,9 @@ def proxy(path):
     if request.method == "OPTIONS":
         return Response("", status=200)
 
-    target_url = f"{TARGET_API_SERVER}/{path}"
+    # 修正這裡：強制把 /api/ 加回轉發網址中，讓它對齊 Rust 伺服器的 OpenAPI 規範
+    target_url = f"{TARGET_API_SERVER}/api/{path}"
 
-    # 加上 .items() 確保在 Vercel WSGI 環境下能安全讀取 headers
     headers = {
         key: value for key, value in request.headers.items() if key.lower() != "host"
     }
@@ -44,7 +44,7 @@ def proxy(path):
                 headers=headers,
                 data=request.form,
                 files=files,
-                timeout=10,  # 強制 10 秒逾時，不讓 Vercel 乾等到崩潰
+                timeout=10,
             )
         else:
             resp = requests.request(
@@ -56,16 +56,9 @@ def proxy(path):
             )
 
     except requests.exceptions.Timeout:
-        # 回傳乾淨的 JSON，讓前端不會出現 JSON.parse 錯誤
-        return jsonify(
-            {"error": "代理伺服器連線逾時！這代表 Vercel 被你學校的防火牆擋在外面了。"}
-        ), 504
+        return jsonify({"error": "代理伺服器連線逾時！"}), 504
     except requests.exceptions.ConnectionError:
-        return jsonify(
-            {
-                "error": "代理伺服器連線被拒絕！請確認 120.110.113.111:3000 對國外 IP 是否有開放。"
-            }
-        ), 502
+        return jsonify({"error": "代理伺服器連線被拒絕！"}), 502
     except Exception as e:
         return jsonify({"error": f"Python 內部發生未預期的錯誤: {str(e)}"}), 500
 
