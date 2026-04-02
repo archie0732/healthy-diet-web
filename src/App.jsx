@@ -35,8 +35,15 @@ const LoginView = ({ apiFetch, setToken, setCurrentView, showNotification }) => 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-md transform transition-all hover:scale-[1.01] mx-4">
       <div className="flex justify-center mb-6">
-        <div className="bg-linear-to-br from-green-400 to-emerald-600 p-4 rounded-2xl text-white shadow-lg">
-          <Activity size={36} />
+        {/* 🔽 改為自訂 Logo 圖片 */}
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl shadow-lg border border-gray-100 overflow-hidden bg-emerald-50 flex items-center justify-center">
+          <img
+            src="/logo.png"
+            alt="App Logo"
+            className="w-full h-full object-cover"
+            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+          />
+          <Activity size={36} className="text-emerald-500 hidden" />
         </div>
       </div>
       <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-gray-800 mb-2">健康飲食管家</h2>
@@ -97,8 +104,15 @@ const RegisterView = ({ apiFetch, setToken, setCurrentView, showNotification }) 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-md transform transition-all hover:scale-[1.01] mx-4">
       <div className="flex justify-center mb-6">
-        <div className="bg-linear-to-br from-blue-400 to-indigo-600 p-4 rounded-2xl text-white shadow-lg">
-          <User size={36} />
+        {/* 🔽 改為自訂 Logo 圖片 */}
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl shadow-lg border border-gray-100 overflow-hidden bg-indigo-50 flex items-center justify-center">
+          <img
+            src="/icon.webp"
+            alt="App Logo"
+            className="w-full h-full object-cover"
+            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+          />
+          <User size={36} className="text-indigo-500 hidden" />
         </div>
       </div>
       <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-gray-800 mb-2">建立新帳號</h2>
@@ -162,7 +176,6 @@ const DashboardView = ({ user, setCurrentView }) => {
     { title: '進階睡眠分析', icon: <Moon size={24} />, desc: '結合您的飲食習慣，由 AI 分析並改善您的睡眠品質。' },
   ];
 
-  // 動態計算 BMI 與分類狀態
   let bmi = null;
   let bmiStatus = '';
   let bmiColor = 'text-gray-500 bg-gray-100';
@@ -188,7 +201,6 @@ const DashboardView = ({ user, setCurrentView }) => {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500">
-      {/* 歡迎橫幅 */}
       <div className="bg-linear-to-r from-emerald-500 via-green-500 to-teal-500 rounded-3xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <h1 className="text-2xl sm:text-4xl font-extrabold mb-2 sm:mb-3">
@@ -198,13 +210,11 @@ const DashboardView = ({ user, setCurrentView }) => {
             今天也是邁向健康的一天。根據您的資料，建議您今天多攝取水分，並保持愉悅的心情喔！
           </p>
         </div>
-        {/* 背景裝飾 */}
         <div className="absolute top-0 right-0 -mt-4 -mr-4 sm:-mt-10 sm:-mr-10 text-white opacity-10 transform rotate-12">
           <Activity className="w-48 h-48 sm:w-64 sm:h-64" />
         </div>
       </div>
 
-      {/* 主要功能快捷鍵 */}
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center">
           <Sparkles className="mr-2 text-yellow-500" /> 快速開始
@@ -223,7 +233,6 @@ const DashboardView = ({ user, setCurrentView }) => {
         </div>
       </div>
 
-      {/* 狀態卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
 
         <div className="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start space-x-4 sm:space-x-5">
@@ -234,14 +243,12 @@ const DashboardView = ({ user, setCurrentView }) => {
               {user?.height ? `${user.height} cm` : '--'} / {user?.weight ? `${user.weight} kg` : '--'}
             </p>
 
-            {/* BMI 區塊與 Tooltip 懸浮提示 */}
             {bmi && (
               <div className="mt-2 relative group inline-block">
                 <div className={`text-xs px-2.5 py-1.5 rounded-lg font-bold cursor-help inline-flex items-center transition-transform hover:scale-105 ${bmiColor}`}>
                   BMI: {bmi} <span className="ml-1 font-medium opacity-80">({bmiStatus})</span>
                 </div>
 
-                {/* 隱藏的懸浮提示框 (Tooltip) */}
                 <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-4 bg-slate-800 text-white text-xs rounded-xl shadow-xl z-50 pointer-events-none transform transition-all">
                   <p className="font-bold mb-2 text-emerald-400 text-sm">BMI 計算公式</p>
                   <p className="mb-3 text-slate-300 font-mono bg-slate-700 p-2 rounded-md text-center">體重(kg) ÷ 身高²(m²)</p>
@@ -251,7 +258,6 @@ const DashboardView = ({ user, setCurrentView }) => {
                     <p className="flex justify-between"><span className="text-orange-300">過重</span><span className="font-mono">{'24 - 27'}</span></p>
                     <p className="flex justify-between"><span className="text-red-300">肥胖</span><span className="font-mono">{'> 27'}</span></p>
                   </div>
-                  {/* 對話框的向下小箭頭 */}
                   <div className="absolute top-full left-6 border-4 border-transparent border-t-slate-800"></div>
                 </div>
               </div>
@@ -276,7 +282,6 @@ const DashboardView = ({ user, setCurrentView }) => {
         </div>
       </div>
 
-      {/* 開發藍圖 (即將推出) */}
       <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 text-white mt-8 sm:mt-10 shadow-xl overflow-hidden relative">
         <div className="absolute top-0 right-0 p-4 sm:p-8 opacity-10">
           <Code2 size={150} className="sm:w-50 sm:h-50" />
@@ -315,7 +320,6 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile, setCurren
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 🔽 新增：數值防呆驗證
     const parsedHeight = parseFloat(formData.height);
     const parsedWeight = parseFloat(formData.weight);
 
@@ -370,13 +374,11 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile, setCurren
               className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-xl text-gray-500 cursor-not-allowed" />
           </div>
           <div>
-            {/* 🔽 新增：min 和 max 屬性限制輸入範圍 */}
             <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">身高 (cm)</label>
             <input type="number" step="0.1" min="1" max="300" value={formData.height} onChange={e => setFormData({ ...formData, height: e.target.value })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50 focus:bg-white transition-colors" />
           </div>
           <div>
-            {/* 🔽 新增：min 和 max 屬性限制輸入範圍 */}
             <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">體重 (kg)</label>
             <input type="number" step="0.1" min="1" max="500" value={formData.weight} onChange={e => setFormData({ ...formData, weight: e.target.value })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50 focus:bg-white transition-colors" />
@@ -413,10 +415,8 @@ const ConsultView = ({ user, apiFetch, showNotification, fetchProfile }) => {
   const [isThinking, setIsThinking] = useState(false);
   const endOfChatRef = useRef(null);
 
-  // 接收後端陣列 (支援 JS 的 camelCase 或是 Rust 的 snake_case)
   const historyData = user?.aiConsultations || user?.ai_consultations;
 
-  // 1. 同步與自動排序歷史紀錄
   useEffect(() => {
     if (historyData) {
       const sortedHistory = [...historyData].sort((a, b) => {
@@ -567,7 +567,6 @@ const DietView = ({ apiFetch, showNotification }) => {
   const [result, setResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // 相機相關 State 與 Ref
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -576,7 +575,6 @@ const DietView = ({ apiFetch, showNotification }) => {
     return () => stopCamera();
   }, []);
 
-  // 圖片壓縮功能
   const compressImage = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -664,7 +662,6 @@ const DietView = ({ apiFetch, showNotification }) => {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // 呼叫壓縮邏輯
       const compressedFile = await compressImage(file);
       setSelectedFile(compressedFile);
       setPreviewUrl(URL.createObjectURL(compressedFile));
@@ -713,7 +710,6 @@ const DietView = ({ apiFetch, showNotification }) => {
           </div>
         </div>
 
-        {/* 主要上傳 / 相機區塊 */}
         <div className="mb-6">
           {isCameraOpen ? (
             <div className="relative bg-black rounded-3xl overflow-hidden shadow-inner aspect-video flex flex-col items-center justify-center">
@@ -777,7 +773,6 @@ const DietView = ({ apiFetch, showNotification }) => {
           )}
         </div>
 
-        {/* 送出分析按鈕 */}
         <div className="flex justify-center mt-6">
           <button onClick={handleUpload} disabled={!selectedFile || isAnalyzing || isCameraOpen}
             className="w-full sm:w-auto bg-blue-600 text-white px-8 sm:px-12 py-3 sm:py-4 rounded-2xl hover:bg-blue-700 transition-all font-bold text-base sm:text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg hover:shadow-xl">
@@ -803,6 +798,7 @@ const DietView = ({ apiFetch, showNotification }) => {
               </div>
             )}
           </div>
+
           {result.image_base64 && (
             <div className="mb-6 bg-white p-2 rounded-2xl border border-blue-100 shadow-sm text-center">
               <p className="text-xs text-blue-500 font-bold mb-2">AI 辨識視角</p>
@@ -852,11 +848,38 @@ const DietView = ({ apiFetch, showNotification }) => {
   );
 };
 
+// ==========================================
+// 4. 🔽 更新：關於團隊視圖 (4人配置與真實照片)
+// ==========================================
+
 const AboutView = () => {
+  // 修改為 4 人配置，對應 public 裡的圖片名稱
   const team = [
-    { name: 'Dr. Sarah Lin', role: '首席營養顧問', desc: '擁有 10 年臨床營養學經驗，負責調教 AI 模型的營養學知識庫。', icon: <Sparkles className="text-yellow-500" /> },
-    { name: 'Alex Chen', role: 'AI 演算法工程師', desc: '專注於 YOLO 視覺模型優化與 LLM (大型語言模型) 的 Prompt Engineering。', icon: <Code2 className="text-blue-500" /> },
-    { name: 'Jamie Wang', role: '全端開發者', desc: '負責架構 React 前端與 Flask 後端 API，致力於提供最流暢的使用者體驗。', icon: <Server className="text-emerald-500" /> }
+    {
+
+      name: 'Arch1e',
+      role: '網頁前端與伺服器後端設計',
+      desc: '專注於 React 前端介面架構與高效能的 Rust/Flask API 後端開發。',
+      image: '/team1.png'
+    },
+    {
+      name: 'kamiya',
+      role: '手機程式設計 (目前還在開發階段)',
+      desc: '負責將網頁版的完整功能無縫移植至行動裝置，提供跨平台的優質體驗。',
+      image: '/team2.webp'
+    },
+    {
+      name: '空白',
+      role: '圖片辨識',
+      desc: '負責 YOLO 視覺模型的訓練與整合，精準擷取食物特徵與份量估算。',
+      image: '/team3.webp'
+    },
+    {
+      name: '呵公子',
+      role: '語意分析與AI提示詞調適',
+      desc: '專注於大型語言模型的 Prompt Engineering，打造出專業的 AI 營養顧問。',
+      image: '/team4.jpg'
+    }
   ];
 
   return (
@@ -879,14 +902,24 @@ const AboutView = () => {
 
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">認識我們的核心團隊</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           {team.map((member, idx) => (
             <div key={idx} className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-lg transition-shadow text-center">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-slate-50 rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center shadow-inner border-2 border-slate-100">
-                {member.icon}
+              {/* 🔽 改為顯示真實圖片 */}
+              <div className="w-24 h-24 sm:w-28 sm:h-28 bg-slate-50 rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center shadow-inner border-4 border-emerald-50 overflow-hidden">
+                <img
+                  src={member.image}
+                  alt={member.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    // 圖片如果不存在，會顯示這個臨時的替換圖示防呆
+                    e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%23cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+                  }}
+                />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1">{member.name}</h3>
-              <p className="text-emerald-600 font-medium text-xs sm:text-sm mb-3 sm:mb-4">{member.role}</p>
+              <p className="text-emerald-600 font-medium text-xs sm:text-sm mb-3 sm:mb-4 min-h-[40px] flex items-center justify-center">{member.role}</p>
               <p className="text-gray-500 text-xs sm:text-sm leading-relaxed">{member.desc}</p>
             </div>
           ))}
@@ -1135,9 +1168,16 @@ export default function App() {
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hidden sm:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between h-16 sm:h-20">
+            {/* 🔽 Navbar 更新為自訂 Logo 圖片 */}
             <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => setCurrentView('dashboard')}>
-              <div className="bg-gradient-to-br from-emerald-400 to-green-600 p-2 sm:p-2.5 rounded-xl text-white shadow-md group-hover:shadow-lg transition-all">
-                <Activity size={24} />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-md border border-gray-100 bg-white group-hover:shadow-lg transition-all flex items-center justify-center">
+                <img
+                  src="/logo.png"
+                  alt="Logo"
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                />
+                <Activity size={24} className="text-emerald-500 hidden" />
               </div>
               <div className="flex items-baseline">
                 <span className="font-extrabold text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight">
@@ -1167,10 +1207,17 @@ export default function App() {
         </div>
       </nav>
 
+      {/* 🔽 手機板 Header 更新為自訂 Logo 圖片 */}
       <header className="sm:hidden bg-white border-b border-gray-200 sticky top-0 z-40 px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="bg-gradient-to-br from-emerald-400 to-green-600 p-1.5 rounded-lg text-white">
-            <Activity size={18} />
+        <div className="flex items-center space-x-2 group">
+          <div className="w-8 h-8 rounded-lg overflow-hidden shadow-sm border border-gray-100 bg-white flex items-center justify-center">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-full h-full object-cover"
+              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+            />
+            <Activity size={18} className="text-emerald-500 hidden" />
           </div>
           <div className="flex items-baseline">
             <span className="font-extrabold text-lg text-slate-800 tracking-tight">
