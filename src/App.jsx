@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Activity, User, MessageSquare, Camera, LogOut,
   Home, Edit2, Send, UploadCloud, CheckCircle2,
-  Sparkles, Users, BookOpen, Smartphone, Trophy, Moon, Code2, Server, Database, X, Image as ImageIcon
+  Sparkles, Users, BookOpen, Smartphone, Trophy, Moon, Code2, Server, Database, X, Image as ImageIcon,
+  ShieldCheck, FileText
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -303,7 +304,7 @@ const DashboardView = ({ user, setCurrentView }) => {
 // 3. 原有功能視圖 (Profile, Consult, Diet)
 // ==========================================
 
-const ProfileView = ({ user, apiFetch, showNotification, fetchProfile }) => {
+const ProfileView = ({ user, apiFetch, showNotification, fetchProfile, setCurrentView }) => {
   const [formData, setFormData] = useState({
     nickname: user?.nickname || '',
     height: user?.height || '',
@@ -313,10 +314,25 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 🔽 新增：數值防呆驗證
+    const parsedHeight = parseFloat(formData.height);
+    const parsedWeight = parseFloat(formData.weight);
+
+    if (formData.height !== '' && (isNaN(parsedHeight) || parsedHeight <= 0 || parsedHeight > 300)) {
+      showNotification('身高數值異常，請輸入合理的範圍 (1 ~ 300 cm)', 'error');
+      return;
+    }
+
+    if (formData.weight !== '' && (isNaN(parsedWeight) || parsedWeight <= 0 || parsedWeight > 500)) {
+      showNotification('體重數值異常，請輸入合理的範圍 (1 ~ 500 kg)', 'error');
+      return;
+    }
+
     try {
       const payload = { ...formData };
-      if (payload.height) payload.height = parseFloat(payload.height);
-      if (payload.weight) payload.weight = parseFloat(payload.weight);
+      if (payload.height !== '') payload.height = parsedHeight;
+      if (payload.weight !== '') payload.weight = parsedWeight;
 
       await apiFetch('/user/profile', {
         method: 'PUT',
@@ -354,13 +370,15 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile }) => {
               className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-xl text-gray-500 cursor-not-allowed" />
           </div>
           <div>
+            {/* 🔽 新增：min 和 max 屬性限制輸入範圍 */}
             <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">身高 (cm)</label>
-            <input type="number" step="0.1" value={formData.height} onChange={e => setFormData({ ...formData, height: e.target.value })}
+            <input type="number" step="0.1" min="1" max="300" value={formData.height} onChange={e => setFormData({ ...formData, height: e.target.value })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50 focus:bg-white transition-colors" />
           </div>
           <div>
+            {/* 🔽 新增：min 和 max 屬性限制輸入範圍 */}
             <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">體重 (kg)</label>
-            <input type="number" step="0.1" value={formData.weight} onChange={e => setFormData({ ...formData, weight: e.target.value })}
+            <input type="number" step="0.1" min="1" max="500" value={formData.weight} onChange={e => setFormData({ ...formData, weight: e.target.value })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50 focus:bg-white transition-colors" />
           </div>
         </div>
@@ -377,11 +395,13 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile }) => {
         </div>
       </form>
 
-      {/* 隱私權條款區塊 */}
       <div className="mt-8 pt-4 border-t border-gray-100 text-center">
-        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-medium text-gray-400 hover:text-emerald-600 transition-colors">
+        <button
+          onClick={() => setCurrentView('privacy')}
+          className="inline-flex items-center text-sm font-medium text-gray-400 hover:text-emerald-600 transition-colors"
+        >
           <BookOpen size={16} className="mr-1.5" /> 隱私條款與服務政策
-        </a>
+        </button>
       </div>
     </div>
   );
@@ -541,7 +561,6 @@ const ConsultView = ({ user, apiFetch, showNotification, fetchProfile }) => {
   );
 };
 
-// 🔽 這是被更新的 DietView (飲食辨識視圖)
 const DietView = ({ apiFetch, showNotification }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -557,7 +576,7 @@ const DietView = ({ apiFetch, showNotification }) => {
     return () => stopCamera();
   }, []);
 
-  // 新增：圖片壓縮功能 (解決 iOS 照片像素過高導致伺服器超載/上傳失敗)
+  // 圖片壓縮功能
   const compressImage = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -567,7 +586,7 @@ const DietView = ({ apiFetch, showNotification }) => {
         img.src = event.target.result;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200; // YOLO 辨識適合的最高解析度
+          const MAX_WIDTH = 1200;
           const MAX_HEIGHT = 1200;
           let width = img.width;
           let height = img.height;
@@ -594,7 +613,7 @@ const DietView = ({ apiFetch, showNotification }) => {
               lastModified: Date.now(),
             });
             resolve(compressedFile);
-          }, 'image/jpeg', 0.85); // 0.85 品質以平衡辨識率與檔案大小
+          }, 'image/jpeg', 0.85);
         };
       };
     });
@@ -667,13 +686,11 @@ const DietView = ({ apiFetch, showNotification }) => {
     formData.append('image', selectedFile);
 
     try {
-      // 呼叫更新後的 /diet API
       const data = await apiFetch('/diet', {
         method: 'POST',
         body: formData
       });
 
-      // 🔽 直接將回傳的 JSON (CalorieResponse) 存入 Result
       setResult(data);
       showNotification('AI 視覺分析完成！');
     } catch (err) {
@@ -773,7 +790,7 @@ const DietView = ({ apiFetch, showNotification }) => {
         </div>
       </div>
 
-      {/* 🔽 辨識結果 (配合新的 JSON 結構) */}
+      {/* 🔽 辨識結果 */}
       {result && (
         <div className="bg-blue-50 p-6 sm:p-8 rounded-3xl border border-blue-100 animate-in slide-in-from-bottom-4 shadow-sm">
 
@@ -781,7 +798,6 @@ const DietView = ({ apiFetch, showNotification }) => {
             <h3 className="text-lg sm:text-xl font-bold text-blue-900 flex items-center">
               <CheckCircle2 className="mr-2 text-blue-600" size={24} /> {result.message}
             </h3>
-            {/* 新增：顯示總熱量 */}
             {result.total_calories !== undefined && (
               <div className="bg-orange-100 text-orange-700 px-4 py-2 rounded-xl font-bold text-lg flex items-center shadow-sm w-full sm:w-auto justify-center">
                 總熱量: <span className="text-2xl ml-2 mr-1">{result.total_calories}</span> ±50 kcal
@@ -802,7 +818,6 @@ const DietView = ({ apiFetch, showNotification }) => {
                   </div>
                 </div>
 
-                {/* 新增：顯示預估重量與熱量 */}
                 <div className="flex items-center space-x-3 sm:space-x-4 bg-slate-50 sm:bg-transparent p-3 sm:p-0 rounded-xl">
                   <div className="text-sm font-medium text-gray-600">
                     <span className="text-gray-400 text-xs block sm:inline sm:mr-1">預估重量</span>
@@ -828,10 +843,6 @@ const DietView = ({ apiFetch, showNotification }) => {
   );
 };
 
-// ==========================================
-// 4. 新增：關於團隊視圖
-// ==========================================
-
 const AboutView = () => {
   const team = [
     { name: 'Dr. Sarah Lin', role: '首席營養顧問', desc: '擁有 10 年臨床營養學經驗，負責調教 AI 模型的營養學知識庫。', icon: <Sparkles className="text-yellow-500" /> },
@@ -841,7 +852,6 @@ const AboutView = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 sm:space-y-10 animate-in fade-in duration-500">
-      {/* 願景區塊 */}
       <div className="bg-slate-900 rounded-3xl p-8 sm:p-10 text-center text-white shadow-2xl relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-slate-900 to-slate-900"></div>
         <div className="relative z-10">
@@ -858,7 +868,6 @@ const AboutView = () => {
         </div>
       </div>
 
-      {/* 團隊成員 */}
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">認識我們的核心團隊</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
@@ -877,10 +886,6 @@ const AboutView = () => {
     </div>
   );
 };
-
-// ==========================================
-// 5. 新增：API 文件視圖
-// ==========================================
 
 const ApiDocsView = () => {
   const endpoints = [
@@ -940,6 +945,74 @@ const ApiDocsView = () => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PrivacyPolicyView = () => {
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white p-6 sm:p-10 rounded-3xl shadow-sm border border-gray-100">
+
+        <div className="flex flex-col sm:flex-row sm:items-center mb-8 border-b border-gray-100 pb-6">
+          <div className="bg-emerald-100 p-3 sm:p-4 rounded-2xl text-emerald-600 sm:mr-5 shadow-sm w-fit mb-4 sm:mb-0">
+            <ShieldCheck size={28} className="sm:w-8 sm:h-8" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800">隱私權與服務條款</h1>
+            <p className="text-gray-500 mt-1 sm:mt-2 text-sm sm:text-base">最後更新日期：2026 年 04 月</p>
+          </div>
+        </div>
+
+        <div className="space-y-8 text-gray-700 leading-relaxed text-sm sm:text-base">
+
+          <section>
+            <h2 className="text-xl font-bold text-emerald-800 mb-3 flex items-center">
+              <FileText className="mr-2" size={20} /> 1. 資訊收集與使用
+            </h2>
+            <p className="mb-3">歡迎使用「健康飲食 APP」。為了提供個人化的營養分析與視覺辨識服務，我們會在您使用服務期間收集以下必要資訊：</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-600">
+              <li><strong>帳戶與身體數據：</strong>包含您的電子郵件、暱稱、身高、體重以及您填寫的飲食禁忌/過敏源。這些數據僅用於讓 AI 營養師為您量身打造飲食建議。</li>
+              <li><strong>影像資料 (YOLO 辨識)：</strong>當您使用「相機辨識」功能時，您上傳或拍攝的食物圖片將被傳送至我們的後端伺服器進行推論，以計算熱量及份量。</li>
+              <li><strong>諮詢紀錄：</strong>您與 AI 營養師的對話內容將被儲存，以便我們為您提供具有上下文連貫性的服務。</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-emerald-800 mb-3 flex items-center">
+              <Database className="mr-2" size={20} /> 2. 資料儲存與安全
+            </h2>
+            <p className="mb-3">我們高度重視您的資料安全，並採取適當的技術手段保護您的個人資訊：</p>
+            <ul className="list-disc ml-6 space-y-2 text-gray-600">
+              <li>所有密碼均經過加密處理後安全儲存。</li>
+              <li>您上傳用於 YOLO 辨識的<strong>食物照片，僅供當次即時推論計算使用</strong>，計算完成後不會被永久儲存於我們的公開資料庫中。</li>
+              <li>您的帳戶 Token 採用 JWT 機制，請妥善保管您的登入憑證，勿提供給第三方。</li>
+            </ul>
+          </section>
+
+          <section className="bg-amber-50 p-5 rounded-2xl border border-amber-100">
+            <h2 className="text-xl font-bold text-amber-800 mb-3 flex items-center">
+              <Activity className="mr-2" size={20} /> 3. 醫療免責聲明 (重要)
+            </h2>
+            <p className="text-amber-900 font-medium mb-2">
+              本 APP 提供的所有 AI 營養諮詢建議、YOLO 影像辨識結果及卡路里估算，<strong>僅供日常飲食管理之參考，絕對不具備任何醫療效力或專業診斷之用途。</strong>
+            </p>
+            <p className="text-amber-800 text-sm">
+              機器學習模型（包括物件偵測與大型語言模型）仍有產生誤差或幻覺之可能性。若您有特定疾病、嚴重過敏、懷孕或正在進行特殊醫療計畫，請務必諮詢專業醫師或註冊營養師的意見。因使用本服務結果所產生的任何直接或間接後果，本團隊恕不負擔醫療或法律責任。
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-emerald-800 mb-3 flex items-center">
+              <Users className="mr-2" size={20} /> 4. 服務修改與終止
+            </h2>
+            <p className="text-gray-600">
+              我們保留隨時修改、暫停或終止本服務及其條款的權利。重大修改將會透過 APP 內部公告通知您。繼續使用本服務即表示您同意接受修改後的條款。如果您對隱私權政策有任何疑問，請聯繫我們的開發團隊。
+            </p>
+          </section>
+
         </div>
       </div>
     </div>
@@ -1006,11 +1079,9 @@ export default function App() {
     }
   };
 
-  // 登入或註冊畫面
   if (currentView === 'login' || currentView === 'register') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-50 via-gray-50 to-blue-50 relative p-4 overflow-hidden">
-        {/* 背景裝飾 */}
         <div className="absolute -top-10 -left-10 sm:top-10 sm:left-10 text-emerald-100 opacity-40"><Activity size={250} /></div>
         <div className="absolute -bottom-10 -right-10 sm:bottom-10 sm:right-10 text-blue-100 opacity-40"><User size={250} /></div>
 
@@ -1030,7 +1101,6 @@ export default function App() {
     );
   }
 
-  // 電腦版/平板上方 Navbar 按鈕
   const DesktopNavButton = ({ id, icon: Icon, label }) => (
     <button onClick={() => setCurrentView(id)}
       className={`p-2 sm:p-2.5 rounded-xl flex items-center transition-all font-semibold text-sm sm:text-base ${currentView === 'dashboard' && id === 'dashboard' || currentView === id ? 'bg-emerald-50 text-emerald-600 shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}>
@@ -1038,7 +1108,6 @@ export default function App() {
     </button>
   );
 
-  // 手機版底部 Navbar 按鈕
   const MobileNavButton = ({ id, icon: Icon, label }) => {
     const isActive = currentView === id || (currentView === 'dashboard' && id === 'dashboard');
     return (
@@ -1054,11 +1123,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* 頂部導覽列 (電腦版/平板版) */}
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hidden sm:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between h-16 sm:h-20">
-            {/* Logo - 更新標題樣式 */}
             <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => setCurrentView('dashboard')}>
               <div className="bg-gradient-to-br from-emerald-400 to-green-600 p-2 sm:p-2.5 rounded-xl text-white shadow-md group-hover:shadow-lg transition-all">
                 <Activity size={24} />
@@ -1073,7 +1140,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* 選單列表 */}
             <div className="flex items-center space-x-1 sm:space-x-2">
               <DesktopNavButton id="dashboard" icon={Home} label="首頁" />
               <DesktopNavButton id="consult" icon={MessageSquare} label="AI諮詢" />
@@ -1092,7 +1158,6 @@ export default function App() {
         </div>
       </nav>
 
-      {/* 手機版頂部 Header (只顯示 Logo 和登出) - 更新標題樣式 */}
       <header className="sm:hidden bg-white border-b border-gray-200 sticky top-0 z-40 px-4 h-14 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="bg-gradient-to-br from-emerald-400 to-green-600 p-1.5 rounded-lg text-white">
@@ -1112,7 +1177,6 @@ export default function App() {
         </button>
       </header>
 
-      {/* 主要內容區 */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 md:p-8 lg:p-10 pb-24 sm:pb-10 relative">
         {notification && (
           <div className={`fixed top-16 sm:top-24 left-1/2 transform -translate-x-1/2 z-50 px-6 sm:px-8 py-3 sm:py-4 rounded-full text-white shadow-2xl transition-all font-bold flex items-center w-max max-w-[90vw] text-sm sm:text-base ${notification.type === 'error' ? 'bg-red-500' : 'bg-slate-800'}`}>
@@ -1121,16 +1185,15 @@ export default function App() {
           </div>
         )}
 
-        {/* 路由控制 */}
         {currentView === 'dashboard' && <DashboardView user={user} setCurrentView={setCurrentView} />}
-        {currentView === 'profile' && <ProfileView user={user} apiFetch={apiFetch} showNotification={showNotification} fetchProfile={fetchProfile} />}
+        {currentView === 'profile' && <ProfileView user={user} apiFetch={apiFetch} showNotification={showNotification} fetchProfile={fetchProfile} setCurrentView={setCurrentView} />}
         {currentView === 'consult' && <ConsultView user={user} apiFetch={apiFetch} showNotification={showNotification} fetchProfile={fetchProfile} />}
         {currentView === 'diet' && <DietView apiFetch={apiFetch} showNotification={showNotification} />}
         {currentView === 'about' && <AboutView />}
         {currentView === 'api-docs' && <ApiDocsView />}
+        {currentView === 'privacy' && <PrivacyPolicyView />}
       </main>
 
-      {/* 手機版專屬底部導覽列 (Bottom Navigation) */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe">
         <div className="flex justify-around items-center h-16 px-2">
           <MobileNavButton id="dashboard" icon={Home} label="首頁" />
