@@ -7,7 +7,10 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-TARGET_API_SERVER = os.environ.get("TARGET_API_SERVER", "http://120.110.113.111:3000")
+# 抓取環境變數，並把結尾可能多加的斜線去掉 (防呆機制)
+TARGET_API_SERVER = os.environ.get(
+    "TARGET_API_SERVER", "http://120.110.113.111:3000"
+).rstrip("/")
 
 
 @app.route(
@@ -22,12 +25,16 @@ def proxy(path):
     if request.method == "OPTIONS":
         return Response("", status=200)
 
-    # 修正這裡：強制把 /api/ 加回轉發網址中，讓它對齊 Rust 伺服器的 OpenAPI 規範
-    target_url = f"{TARGET_API_SERVER}/api/{path}"
+    # 乖乖照你的 Rust router，不再亂加 /api/，並確保不會出現雙斜線 //
+    target_url = f"{TARGET_API_SERVER}/{path.lstrip('/')}"
 
     headers = {
         key: value for key, value in request.headers.items() if key.lower() != "host"
     }
+
+    # 💡 補充：如果你是用 ngrok 穿透，這行建議加上！
+    # 可以繞過 ngrok 免費版的 HTML 警告畫面，防止 React 收到 HTML 導致 JSON.parse 報錯
+    headers["ngrok-skip-browser-warning"] = "true"
 
     try:
         if request.files:
