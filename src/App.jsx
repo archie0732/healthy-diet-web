@@ -6,10 +6,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
-
 const API_BASE = '/api';
-
-
 
 const LoginView = ({ apiFetch, setToken, setCurrentView, showNotification }) => {
   const [email, setEmail] = useState('ckck@gmail.com');
@@ -37,7 +34,7 @@ const LoginView = ({ apiFetch, setToken, setCurrentView, showNotification }) => 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-md transform transition-all hover:scale-[1.01] mx-4">
       <div className="flex justify-center mb-6">
-        <div className="`bg-linear-to-br from-green-400 to-emerald-600 p-4 rounded-2xl text-white shadow-lg">
+        <div className="bg-linear-to-br from-green-400 to-emerald-600 p-4 rounded-2xl text-white shadow-lg">
           <Activity size={36} />
         </div>
       </div>
@@ -379,6 +376,13 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile }) => {
           </button>
         </div>
       </form>
+
+      {/* 隱私權條款區塊 */}
+      <div className="mt-8 pt-4 border-t border-gray-100 text-center">
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm font-medium text-gray-400 hover:text-emerald-600 transition-colors">
+          <BookOpen size={16} className="mr-1.5" /> 隱私條款與服務政策
+        </a>
+      </div>
     </div>
   );
 };
@@ -553,6 +557,49 @@ const DietView = ({ apiFetch, showNotification }) => {
     return () => stopCamera();
   }, []);
 
+  // 新增：圖片壓縮功能 (解決 iOS 照片像素過高導致伺服器超載/上傳失敗)
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200; // YOLO 辨識適合的最高解析度
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob((blob) => {
+            const compressedFile = new File([blob], file.name || 'compressed_photo.jpg', {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          }, 'image/jpeg', 0.85); // 0.85 品質以平衡辨識率與檔案大小
+        };
+      };
+    });
+  };
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -595,11 +642,13 @@ const DietView = ({ apiFetch, showNotification }) => {
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      // 呼叫壓縮邏輯
+      const compressedFile = await compressImage(file);
+      setSelectedFile(compressedFile);
+      setPreviewUrl(URL.createObjectURL(compressedFile));
       setResult(null);
       stopCamera();
     }
@@ -706,7 +755,7 @@ const DietView = ({ apiFetch, showNotification }) => {
                   <Camera size={20} className="mr-2" /> 開啟相機
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-6">支援 JPG, PNG, WEBP (最大 5MB)</p>
+              <p className="text-xs text-gray-400 mt-6">支援 JPG, PNG, WEBP (自動壓縮高畫質照片)</p>
             </div>
           )}
         </div>
@@ -1009,14 +1058,19 @@ export default function App() {
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hidden sm:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex justify-between h-16 sm:h-20">
-            {/* Logo */}
+            {/* Logo - 更新標題樣式 */}
             <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => setCurrentView('dashboard')}>
               <div className="bg-gradient-to-br from-emerald-400 to-green-600 p-2 sm:p-2.5 rounded-xl text-white shadow-md group-hover:shadow-lg transition-all">
                 <Activity size={24} />
               </div>
-              <span className="font-extrabold text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight">
-                健康飲食APP 網頁版
-              </span>
+              <div className="flex items-baseline">
+                <span className="font-extrabold text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight">
+                  健康飲食 APP
+                </span>
+                <span className="ml-2 text-xs font-bold text-emerald-600 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-sm tracking-normal">
+                  網頁版
+                </span>
+              </div>
             </div>
 
             {/* 選單列表 */}
@@ -1038,15 +1092,20 @@ export default function App() {
         </div>
       </nav>
 
-      {/* 手機版頂部 Header (只顯示 Logo 和登出) */}
+      {/* 手機版頂部 Header (只顯示 Logo 和登出) - 更新標題樣式 */}
       <header className="sm:hidden bg-white border-b border-gray-200 sticky top-0 z-40 px-4 h-14 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="bg-gradient-to-br from-emerald-400 to-green-600 p-1.5 rounded-lg text-white">
             <Activity size={18} />
           </div>
-          <span className="font-extrabold text-lg text-slate-800 tracking-tight">
-            健康管家
-          </span>
+          <div className="flex items-baseline">
+            <span className="font-extrabold text-lg text-slate-800 tracking-tight">
+              健康飲食 APP
+            </span>
+            <span className="ml-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-md border border-emerald-200 tracking-normal">
+              網頁版
+            </span>
+          </div>
         </div>
         <button onClick={handleLogout} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
           <LogOut size={20} />
