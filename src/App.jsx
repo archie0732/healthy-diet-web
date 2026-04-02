@@ -790,7 +790,6 @@ const DietView = ({ apiFetch, showNotification }) => {
         </div>
       </div>
 
-      {/* 🔽 辨識結果 */}
       {result && (
         <div className="bg-blue-50 p-6 sm:p-8 rounded-3xl border border-blue-100 animate-in slide-in-from-bottom-4 shadow-sm">
 
@@ -804,6 +803,16 @@ const DietView = ({ apiFetch, showNotification }) => {
               </div>
             )}
           </div>
+          {result.image_base64 && (
+            <div className="mb-6 bg-white p-2 rounded-2xl border border-blue-100 shadow-sm text-center">
+              <p className="text-xs text-blue-500 font-bold mb-2">AI 辨識視角</p>
+              <img
+                src={`data:image/jpeg;base64,${result.image_base64}`}
+                alt="YOLO 辨識結果"
+                className="mx-auto max-h-[40vh] sm:max-h-96 rounded-xl object-contain"
+              />
+            </div>
+          )}
 
           <div className="space-y-3 sm:space-y-4">
             {result.detected_items && result.detected_items.length > 0 ? result.detected_items.map((det, idx) => (
