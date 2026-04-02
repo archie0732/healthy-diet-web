@@ -7,7 +7,6 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# 抓取環境變數，並把結尾可能多加的斜線去掉 (防呆機制)
 TARGET_API_SERVER = os.environ.get(
     "TARGET_API_SERVER", "http://120.110.113.111:3000"
 ).rstrip("/")
@@ -25,15 +24,10 @@ def proxy(path):
     if request.method == "OPTIONS":
         return Response("", status=200)
 
-    # 乖乖照你的 Rust router，不再亂加 /api/，並確保不會出現雙斜線 //
     target_url = f"{TARGET_API_SERVER}/{path.lstrip('/')}"
-
     headers = {
         key: value for key, value in request.headers.items() if key.lower() != "host"
     }
-
-    # 💡 補充：如果你是用 ngrok 穿透，這行建議加上！
-    # 可以繞過 ngrok 免費版的 HTML 警告畫面，防止 React 收到 HTML 導致 JSON.parse 報錯
     headers["ngrok-skip-browser-warning"] = "true"
 
     try:
@@ -51,7 +45,7 @@ def proxy(path):
                 headers=headers,
                 data=request.form,
                 files=files,
-                timeout=10,
+                timeout=60,  # 放寬到 60 秒
             )
         else:
             resp = requests.request(
@@ -59,11 +53,11 @@ def proxy(path):
                 url=target_url,
                 headers=headers,
                 data=request.get_data(),
-                timeout=10,
+                timeout=60,  # 放寬到 60 秒
             )
 
     except requests.exceptions.Timeout:
-        return jsonify({"error": "代理伺服器連線逾時！"}), 504
+        return jsonify({"error": "代理伺服器連線逾時！已等待超過 60 秒。"}), 504
     except requests.exceptions.ConnectionError:
         return jsonify({"error": "代理伺服器連線被拒絕！"}), 502
     except Exception as e:
