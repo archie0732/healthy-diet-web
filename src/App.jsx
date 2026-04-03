@@ -878,7 +878,7 @@ const AboutView = () => {
       name: '呵公子',
       role: '語意分析與AI提示詞調適',
       desc: '專注於大型語言模型的 Prompt Engineering，打造出專業的 AI 營養顧問。',
-      image: '/team4.jpg'
+      image: '/team5.png'
     }
   ];
 
