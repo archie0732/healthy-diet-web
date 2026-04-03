@@ -1172,7 +1172,7 @@ export default function App() {
             <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => setCurrentView('dashboard')}>
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-md border border-gray-100 bg-white group-hover:shadow-lg transition-all flex items-center justify-center">
                 <img
-                  src="/logo.png"
+                  src="/icon.webp"
                   alt="Logo"
                   className="w-full h-full object-cover"
                   onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
