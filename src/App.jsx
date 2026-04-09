@@ -6,6 +6,7 @@ import {
   ShieldCheck, FileText
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const API_BASE = '/api';
 
@@ -555,14 +556,23 @@ const ConsultView = ({ user, apiFetch, showNotification, fetchProfile }) => {
                     </div>
                     <div className="bg-white border border-gray-100 text-gray-700 px-4 py-3 sm:px-5 sm:py-4 rounded-2xl rounded-tl-sm max-w-[85%] sm:max-w-[80%] shadow-sm leading-relaxed text-sm sm:text-base overflow-x-auto">
                       <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
                         components={{
                           p: ({ _, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
                           ul: ({ _, ...props }) => <ul className="list-disc ml-5 mb-3 space-y-1" {...props} />,
                           ol: ({ node, ...props }) => <ol className="list-decimal ml-5 mb-3 space-y-1" {...props} />,
                           li: ({ node, ...props }) => <li className="" {...props} />,
-                          h1: ({ node, ...props }) => <h1 className="text-xl font-bold mb-3 mt-4 text-emerald-800 border-b pb-1" {...props} />,
-                          h2: ({ node, ...props }) => <h2 className="text-lg font-bold mb-2 mt-3 text-emerald-800" {...props} />,
-                          h3: ({ node, ...props }) => <h3 className="text-base font-bold mb-2 mt-2 text-emerald-700" {...props} />,
+                          h1: ({ node, ...props }) => <h1 className="text-2xl font-extrabold mb-4 mt-6 text-emerald-900 border-b-2 border-emerald-100 pb-2" {...props} />,
+                          h2: ({ node, ...props }) => <h2 className="text-xl font-bold mb-3 mt-5 text-emerald-800" {...props} />,
+                          h3: ({ node, ...props }) => <h3 className="text-lg font-bold mb-2 mt-4 text-emerald-700" {...props} />,
+                          table: ({ node, ...props }) => (
+                            <div className="overflow-x-auto my-4 rounded-xl border border-gray-200">
+                              <table className="min-w-full divide-y divide-gray-200" {...props} />
+                            </div>
+                          ),
+                          thead: ({ node, ...props }) => <thead className="bg-emerald-50" {...props} />,
+                          th: ({ node, ...props }) => <th className="px-4 py-2 text-left text-xs font-bold text-emerald-700 uppercase tracking-wider" {...props} />,
+                          td: ({ node, ...props }) => <td className="px-4 py-2 text-sm text-gray-600 border-t border-gray-100" {...props} />,
                           strong: ({ node, ...props }) => <strong className="font-bold text-emerald-700" {...props} />,
                           em: ({ node, ...props }) => <em className="italic text-gray-600" {...props} />,
                           code: ({ node, inline, ...props }) =>
