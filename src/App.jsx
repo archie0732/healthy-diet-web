@@ -310,11 +310,15 @@ const DashboardView = ({ user, setCurrentView }) => {
 // ==========================================
 
 const ProfileView = ({ user, apiFetch, showNotification, fetchProfile, setCurrentView }) => {
+  // 將陣列轉為字串方便前端顯示
   const [formData, setFormData] = useState({
     nickname: user?.nickname || '',
     height: user?.height || '',
     weight: user?.weight || '',
-    dietary_restrictions: user?.dietaryRestrictions || ''
+    age: user?.age || '',
+    gender: user?.gender || '',
+    disease: user?.disease ? user.disease.join('、') : '',
+    taboo: user?.taboo ? user.taboo.join('、') : ''
   });
 
   const handleSubmit = async (e) => {
@@ -322,6 +326,7 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile, setCurren
 
     const parsedHeight = parseFloat(formData.height);
     const parsedWeight = parseFloat(formData.weight);
+    const parsedAge = parseFloat(formData.age);
 
     if (formData.height !== '' && (isNaN(parsedHeight) || parsedHeight <= 0 || parsedHeight > 300)) {
       showNotification('身高數值異常，請輸入合理的範圍 (1 ~ 300 cm)', 'error');
@@ -333,10 +338,22 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile, setCurren
       return;
     }
 
+    if (formData.age !== '' && (isNaN(parsedAge) || parsedAge <= 0 || parsedAge > 150)) {
+      showNotification('年齡數值異常，請輸入合理的範圍 (1 ~ 150)', 'error');
+      return;
+    }
+
     try {
-      const payload = { ...formData };
-      if (payload.height !== '') payload.height = parsedHeight;
-      if (payload.weight !== '') payload.weight = parsedWeight;
+      // 將以逗點或頓號分隔的字串轉換為陣列送給後端
+      const payload = {
+        nickname: formData.nickname || null,
+        height: formData.height !== '' ? parsedHeight : null,
+        weight: formData.weight !== '' ? parsedWeight : null,
+        age: formData.age !== '' ? parsedAge : null,
+        gender: formData.gender || null,
+        disease: formData.disease ? formData.disease.split(/[,、，\n]+/).map(s => s.trim()).filter(Boolean) : [],
+        taboo: formData.taboo ? formData.taboo.split(/[,、，\n]+/).map(s => s.trim()).filter(Boolean) : []
+      };
 
       await apiFetch('/user/profile', {
         method: 'PUT',
@@ -373,6 +390,29 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile, setCurren
             <input type="email" value={user?.email || ''} readOnly disabled
               className="w-full px-4 py-3 border border-gray-200 bg-gray-100 rounded-xl text-gray-500 cursor-not-allowed" />
           </div>
+
+          {/* 新增：性別 */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">性別</label>
+            <select
+              value={formData.gender}
+              onChange={e => setFormData({ ...formData, gender: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50 focus:bg-white transition-colors"
+            >
+              <option value="">請選擇性別</option>
+              <option value="Male">男性</option>
+              <option value="Female">女性</option>
+              <option value="Other">其他 / 不願透露</option>
+            </select>
+          </div>
+
+          {/* 新增：年齡 */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">年齡</label>
+            <input type="number" min="1" max="150" value={formData.age} onChange={e => setFormData({ ...formData, age: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50 focus:bg-white transition-colors" />
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">身高 (cm)</label>
             <input type="number" step="0.1" min="1" max="300" value={formData.height} onChange={e => setFormData({ ...formData, height: e.target.value })}
@@ -384,12 +424,23 @@ const ProfileView = ({ user, apiFetch, showNotification, fetchProfile, setCurren
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-gray-50 focus:bg-white transition-colors" />
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">飲食禁忌 / 過敏源 / 喜歡的食物</label>
-          <textarea value={formData.dietary_restrictions} onChange={e => setFormData({ ...formData, dietary_restrictions: e.target.value })} rows="4"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-gray-50 focus:bg-white transition-colors"
-            placeholder="例如：不吃花生, 素食，或對海鮮過敏..."></textarea>
+
+        {/* 新增/替換：疾病史與飲食禁忌 */}
+        <div className="space-y-5 sm:space-y-6 mt-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">疾病史 / 健康狀況 (選填)</label>
+            <textarea value={formData.disease} onChange={e => setFormData({ ...formData, disease: e.target.value })} rows="2"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-gray-50 focus:bg-white transition-colors"
+              placeholder="例如：高血壓、糖尿病 (多項請用逗號或頓號分隔)"></textarea>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1 sm:mb-2">飲食禁忌 / 過敏源 (選填)</label>
+            <textarea value={formData.taboo} onChange={e => setFormData({ ...formData, taboo: e.target.value })} rows="2"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-gray-50 focus:bg-white transition-colors"
+              placeholder="例如：花生、海鮮、素食 (多項請用逗號或頓號分隔)"></textarea>
+          </div>
         </div>
+
         <div className="flex justify-end pt-4 sm:pt-6 border-t border-gray-100">
           <button type="submit" className="w-full sm:w-auto bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-md">
             儲存變更
