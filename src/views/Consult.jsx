@@ -58,8 +58,8 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
   };
 
   return (
-    // 🔽 關鍵修正：將 h-[calc(100vh-120px)] 改為 h-[calc(100dvh-85px)]，使用動態視口高度並縮小減去的空間，使其貼齊底部導覽列
-    <div className="max-w-5xl mx-auto bg-white/80 backdrop-blur-md sm:rounded-[32px] shadow-2xl border-x sm:border-2 border-slate-100 overflow-hidden flex flex-col h-[calc(100dvh-85px)] sm:h-[calc(100vh-100px)] relative -mx-4 sm:mx-0">
+    // 🔽 修正 1：將高度調整得更保守 (120px)，預留導覽列空間，避免任何溢出
+    <div className="max-w-5xl mx-auto bg-white/80 backdrop-blur-md sm:rounded-[32px] shadow-2xl border-x sm:border-2 border-slate-100 overflow-hidden flex flex-col h-[calc(100dvh-120px)] sm:h-[calc(100vh-140px)] relative -mx-4 sm:mx-0">
 
       {/* --- 酷炫頂欄 --- */}
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-4 sm:p-6 text-white flex items-center justify-between shadow-lg relative z-20 shrink-0">
@@ -82,7 +82,8 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
       </div>
 
       {/* --- 對話區域 --- */}
-      <div className="flex-1 p-4 sm:p-8 overflow-y-auto bg-slate-50 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
+      {/* 🔽 修正 2：加入 overscroll-contain，鎖定滑動慣性，禁止拉扯 Safari 背景 */}
+      <div className="flex-1 p-4 sm:p-8 overflow-y-auto overscroll-contain bg-slate-50 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
         {chatHistory.length === 0 && !isThinking ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <div className="bg-white p-6 sm:p-8 rounded-[40px] shadow-xl shadow-emerald-100/50 mb-6 border-2 border-emerald-50 transform hover:scale-110 transition-transform">
@@ -101,14 +102,12 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
 
             return (
               <div key={chat.id || idx} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {/* 使用者氣泡 */}
                 <div className="flex justify-end">
                   <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white px-5 py-3 sm:px-6 sm:py-4 rounded-[24px] rounded-tr-none max-w-[85%] sm:max-w-[75%] shadow-md shadow-emerald-200/50 font-bold leading-relaxed text-sm sm:text-base border-b-4 border-teal-700 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-emerald-300/60 hover:-translate-y-1 cursor-default">
                     {userText}
                   </div>
                 </div>
 
-                {/* AI 氣泡 */}
                 {aiText && (
                   <div className="flex justify-start items-start space-x-2 sm:space-x-3 group cursor-default">
                     <div className="bg-emerald-600 p-2 sm:p-2.5 rounded-2xl text-white shadow-md mt-1 border-2 border-emerald-400 shrink-0 transition-all duration-300 group-hover:rotate-12 group-hover:scale-110">
@@ -158,7 +157,6 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
           })
         )}
 
-        {/* --- 思考中的動畫 --- */}
         {isThinking && (
           <div className="flex justify-start items-center space-x-2 sm:space-x-3 animate-pulse">
             <div className="bg-emerald-600 p-2 sm:p-2.5 rounded-2xl text-white border-2 border-emerald-400 shrink-0">
@@ -174,11 +172,12 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
             </div>
           </div>
         )}
-        <div ref={endOfChatRef} className="h-2" />
+        <div ref={endOfChatRef} className="h-4" />
       </div>
 
       {/* --- 輸入區域 --- */}
-      <div className="p-3 sm:p-6 bg-white/95 backdrop-blur-xl border-t-2 border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] relative z-30 shrink-0">
+      {/* 🔽 修正 3：加入 pb-[env(safe-area-inset-bottom)] 確保 iPhone 底部橫條不會擋住輸入框 */}
+      <div className="p-3 sm:p-6 bg-white/95 backdrop-blur-xl border-t-2 border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] relative z-30 shrink-0 pb-[max(env(safe-area-inset-bottom),12px)] sm:pb-6">
         <form onSubmit={handleAsk} className="flex space-x-2 sm:space-x-3 max-w-5xl mx-auto">
           <div className="relative flex-1 group">
             <input

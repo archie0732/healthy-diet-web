@@ -11,6 +11,7 @@ import Privacy from './views/Privacy';
 import LoginView from './views/LoginView';
 import RegisterView from './views/RegisterView';
 import { TooltipProvider } from "@/components/ui/tooltip"
+import ScrollToTop from './components/ScrollToTop';
 
 const API_BASE = '/api';
 
@@ -59,6 +60,7 @@ export default function App() {
   return (
     <Router>
       <TooltipProvider>
+        <ScrollToTop />
         <Routes>
           <Route path="/login" element={!token ? <LoginView setToken={setToken} apiFetch={apiFetch} showNotification={showNotification} /> : <Navigate to="/" />} />
           <Route path="/register" element={!token ? <RegisterView setToken={setToken} apiFetch={apiFetch} showNotification={showNotification} /> : <Navigate to="/" />} />
