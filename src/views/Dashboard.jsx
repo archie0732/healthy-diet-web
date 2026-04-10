@@ -76,6 +76,24 @@ const Dashboard = ({ user, apiFetch }) => {
     }
   }
 
+  const safeParseDate = (dateString) => {
+    if (!dateString) return new Date();
+
+    let safeStr = dateString
+      .replace(' ', 'T')
+      .replace(' UTC', 'Z')
+      .replace(/\+00$/, 'Z');
+
+    let d = new Date(safeStr);
+
+    if (isNaN(d.getTime())) {
+      safeStr = safeStr.split('.')[0] + 'Z';
+      d = new Date(safeStr);
+    }
+
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
   const trendData = [...dietRecords].reverse().map(record => {
     const date = new Date(record.created_at || record.createdAt);
     return { date: `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`, score: record.ai_health_score };
@@ -94,7 +112,8 @@ const Dashboard = ({ user, apiFetch }) => {
 
   const recentRecords = dietRecords.slice(0, 5);
   const formatDate = (dateString) => {
-    const d = new Date(dateString);
+    const d = safeParseDate(dateString);
+    if (isNaN(d.getTime())) return '時間未知';
     return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
