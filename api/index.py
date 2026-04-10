@@ -76,3 +76,10 @@ def proxy(path):
     ]
 
     return Response(resp.content, resp.status_code, resp_headers)
+
+
+if __name__ == "__main__":
+    print("🚀 啟動 Python 代理伺服器...")
+    print("👉 目標 Rust 伺服器:", TARGET_API_SERVER)
+    # 強制綁定在 5000 port
+    app.run(host="127.0.0.1", port=5000, debug=True)
