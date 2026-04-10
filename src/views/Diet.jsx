@@ -1,230 +1,223 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Camera, UploadCloud, X, Activity, Sparkles,
-  CheckCircle2, Database, Image as ImageIcon, MessageSquare,
-  PieChart as PieChartIcon, HeartPulse, Zap, Info, TrendingUp
-} from 'lucide-react';
-import {
-  Radar, RadarChart, PolarGrid, PolarAngleAxis,
-  ResponsiveContainer
-} from 'recharts';
+import React, { useState, useEffect, useRef } from 'react';
+import { MessageSquare, Activity, Send, Sparkles, BrainCircuit } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-const Diet = ({ apiFetch, showNotification }) => {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [result, setResult] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [records, setRecords] = useState([]);
-  const [selectedChatRecord, setSelectedChatRecord] = useState(null); // 這是原本的對話選擇
-  const [showMobileDetail, setShowMobileDetail] = useState(false);   // 這是手機版彈窗控制
+const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
+  const [question, setQuestion] = useState('');
+  const [chatHistory, setChatHistory] = useState([]);
+  const [isThinking, setIsThinking] = useState(false);
+  const chatContainerRef = useRef(null);
 
+  const historyData = user?.aiConsultations || user?.ai_consultations;
+
+  // 🔽 魔法 1：進入聊天室時，直接凍結外層網頁的滾動與橡皮筋效應
   useEffect(() => {
-    fetchHistory();
+    // 儲存原本的設定
+    const originalOverflow = document.body.style.overflow;
+    const originalOverscroll = document.body.style.overscrollBehavior;
+
+    // 鎖死背景，禁止任何滑動拉扯
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+
+    return () => {
+      // 離開頁面時還原
+      document.body.style.overflow = originalOverflow;
+      document.body.style.overscrollBehavior = originalOverscroll;
+    };
   }, []);
 
-  const fetchHistory = async () => {
-    try {
-      const data = await apiFetch('/diet_record', { method: 'GET' });
-      if (Array.isArray(data)) setRecords(data);
-    } catch (err) {
-      console.error("無法取得歷史紀錄", err);
+  useEffect(() => {
+    if (historyData) {
+      const sortedHistory = [...historyData].sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.created_at || 0).getTime();
+        const timeB = new Date(b.createdAt || b.created_at || 0).getTime();
+        return timeA - timeB;
+      });
+      setChatHistory(sortedHistory);
     }
-  };
+  }, [historyData]);
 
-  const useTestImage = async () => {
-    setIsAnalyzing(true);
-    setPreviewUrl('/test1.jpg');
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    };
+    scrollToBottom();
+    const timeoutId = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timeoutId);
+  }, [chatHistory, isThinking]);
+
+  const handleAsk = async (e) => {
+    e.preventDefault();
+    if (!question.trim()) return;
+
+    const newQ = question;
+    setQuestion('');
+    setIsThinking(true);
+
+    const tempHistory = [...chatHistory, { id: Date.now(), question: newQ, aiResponse: null }];
+    setChatHistory(tempHistory);
+
     try {
-      const response = await fetch('/test1.jpg');
-      const blob = await response.blob();
-      const file = new File([blob], "test1.jpg", { type: "image/jpeg" });
-      const formData = new FormData();
-      formData.append('image', file);
-      const data = await apiFetch('/diet', { method: 'POST', body: formData });
-      setResult(data);
-      showNotification('測試圖片分析完成！');
-      fetchHistory();
+      const data = await apiFetch('/consult', {
+        method: 'POST',
+        body: JSON.stringify({ question: newQ })
+      });
+
+      setChatHistory(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1].aiResponse = data.reply || data.aiResponse || data.ai_response || data.answer || data.response || "分析完成，請參考建議內容。";
+        return updated;
+      });
+      fetchProfile();
     } catch (err) {
-      showNotification('測試圖片分析失敗', 'error');
+      showNotification(err.message, 'error');
+      setChatHistory(prev => prev.slice(0, -1));
     } finally {
-      setIsAnalyzing(false);
+      setIsThinking(false);
     }
   };
-
-  const handleRecordSelect = (rec) => {
-    setSelectedChatRecord(rec);
-    if (window.innerWidth < 768) {
-      setShowMobileDetail(true);
-    }
-  };
-
-  const getRadarData = (rec) => [
-    { subject: '穀物', A: rec.grain_area || 0 },
-    { subject: '肉蛋', A: rec.protein_meat_area || 0 },
-    { subject: '蔬菜', A: rec.vegetable_area || 0 },
-    { subject: '水果', A: rec.fruit_area || 0 },
-    { subject: '乳品', A: rec.dairy_area || 0 },
-    { subject: '油脂', A: rec.nuts_area || 0 },
-  ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-24">
-      <div className="bg-white p-6 sm:p-10 rounded-3xl shadow-sm border-2 border-slate-100">
-        <div className="flex items-center mb-8 border-b-2 border-slate-50 pb-6">
-          <div className="bg-blue-100 p-3 rounded-xl text-blue-600 mr-4 border-2 border-blue-200"><Camera size={24} /></div>
+    // 🔽 魔法 2：手機版改為絕對的滿版佈局 (w-[100vw])，移除邊界與圓角，電腦版維持原本的優雅設計
+    <div className="max-w-5xl mx-auto bg-slate-50 sm:bg-white/80 sm:backdrop-blur-md sm:rounded-[32px] sm:shadow-2xl sm:border-2 border-slate-100 overflow-hidden flex flex-col h-[calc(100dvh-80px)] sm:h-[calc(100vh-140px)] relative w-[100vw] -mx-4 -mt-4 sm:w-auto sm:mx-0 sm:mt-0 z-30">
+
+      {/* --- 頂欄 --- */}
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-4 sm:p-6 text-white flex items-center justify-between shadow-md relative z-20 shrink-0">
+        <div className="flex items-center">
+          <div className="bg-white/20 p-2 sm:p-2.5 rounded-2xl backdrop-blur-md mr-3 sm:mr-4 border border-white/30">
+            <BrainCircuit size={24} className="text-white animate-pulse sm:w-7 sm:h-7" />
+          </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-800">飲食 YOLO 視覺辨識</h2>
-            <p className="text-slate-500 text-sm font-bold">上傳照片或使用測試樣本進行 AI 分析</p>
+            <h2 className="text-lg sm:text-2xl font-black tracking-tight">專屬 AI 營養諮詢</h2>
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300"></span>
+              </span>
+              <p className="text-emerald-100 text-[10px] sm:text-xs font-bold uppercase tracking-widest">System Online</p>
+            </div>
           </div>
         </div>
-
-        <div className="mb-6">
-          {previewUrl ? (
-            <div className="relative border-2 border-slate-200 rounded-3xl p-4 bg-slate-50 shadow-inner">
-              <img src={previewUrl} alt="Preview" className="mx-auto max-h-80 rounded-2xl object-contain" />
-              <button onClick={() => { setPreviewUrl(null); setResult(null); }} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md text-red-500 border-2 border-red-50"><X size={20} /></button>
-            </div>
-          ) : (
-            <div className="border-2 border-dashed border-slate-300 rounded-3xl p-10 text-center bg-slate-50/50">
-              <div className="bg-blue-50 p-6 rounded-full mb-6 inline-block border-2 border-blue-100"><UploadCloud size={48} className="text-blue-500" /></div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button onClick={() => document.getElementById('fileUpload').click()} className="bg-white border-2 border-slate-200 py-3 px-6 rounded-xl font-bold flex items-center justify-center hover:bg-slate-50 transition shadow-sm"><ImageIcon size={20} className="mr-2" /> 相簿選擇</button>
-                <input type="file" id="fileUpload" className="hidden" accept="image/*" onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) { setSelectedFile(file); setPreviewUrl(URL.createObjectURL(file)); }
-                }} />
-                <button onClick={useTestImage} className="bg-emerald-600 text-white py-3 px-6 rounded-xl font-bold flex items-center justify-center hover:bg-emerald-700 transition shadow-md"><Zap size={20} className="mr-2" /> 使用測試圖片</button>
-              </div>
-            </div>
-          )}
-        </div>
+        <Sparkles className="text-emerald-300 opacity-50 w-6 h-6 sm:w-8 sm:h-8" />
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border-2 border-slate-100 overflow-hidden flex flex-col h-[600px] md:h-[700px]">
-        <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="text-indigo-600" />
-            <h3 className="font-black text-slate-800">歷史辨識分析對話</h3>
+      {/* --- 對話區域 --- */}
+      <div
+        ref={chatContainerRef}
+        className="flex-1 p-4 sm:p-8 overflow-y-auto overscroll-none bg-slate-50 space-y-6 scrollbar-thin scrollbar-thumb-slate-200"
+      >
+        {chatHistory.length === 0 && !isThinking ? (
+          <div className="flex flex-col items-center justify-center h-full text-slate-400">
+            <div className="bg-white p-6 sm:p-8 rounded-[40px] shadow-xl shadow-emerald-100/50 mb-6 border-2 border-emerald-50 transform hover:scale-110 transition-transform">
+              <MessageSquare size={48} className="text-emerald-400 sm:w-14 sm:h-14" />
+            </div>
+            <p className="font-black text-slate-600 text-base sm:text-lg mb-8">有什麼飲食疑惑嗎？儘管問我</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+              <button onClick={() => setQuestion('推薦重訓完的宵夜')} className="text-left text-xs sm:text-sm bg-white px-5 py-4 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-emerald-400 hover:bg-emerald-50 transition-all font-bold text-slate-600">💪 推薦重訓完的宵夜？</button>
+              <button onClick={() => setQuestion('168 斷食可以喝豆漿嗎？')} className="text-left text-xs sm:text-sm bg-white px-5 py-4 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-emerald-400 hover:bg-emerald-50 transition-all font-bold text-slate-600">🕒 168 斷食可以喝豆漿嗎？</button>
+            </div>
           </div>
-          <span className="text-xs font-bold text-slate-400">點擊紀錄查看詳情</span>
-        </div>
+        ) : (
+          chatHistory.map((chat, idx) => {
+            const aiText = chat.aiResponse || chat.ai_response || chat.response || chat.answer || chat.reply;
+            const userText = chat.question || chat.query || chat.message;
 
-        <div className="flex-1 flex overflow-hidden">
-          <div className="w-full md:w-1/3 border-r-2 border-slate-100 overflow-y-auto bg-slate-50/30">
-            {records.map((rec, idx) => (
-              <div
-                key={rec.id || idx}
-                onClick={() => handleRecordSelect(rec)}
-                className={`p-5 border-b-2 border-slate-100 cursor-pointer transition-all ${selectedChatRecord?.id === rec.id ? 'bg-white shadow-inner border-l-8 border-l-indigo-500' : 'hover:bg-white'}`}
-              >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">{rec.created_at?.split(' ')[0]}</span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${rec.ai_health_score >= 80 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Score: {rec.ai_health_score}</span>
-                </div>
-                <p className="text-sm font-black text-slate-700 truncate mb-1">總熱量: {rec.total_calories?.toFixed(0)} kcal</p>
-                <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">{rec.ai_evaluation}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="hidden md:flex flex-1 p-8 overflow-y-auto bg-slate-50/50 flex-col gap-8">
-            {selectedChatRecord ? (
-              <>
-                <div className="self-end max-w-[90%] w-full animate-in slide-in-from-right-4">
-                  <div className="bg-white p-6 rounded-3xl rounded-tr-none shadow-sm border-2 border-indigo-100">
-                    <h4 className="font-black text-slate-700 mb-6 flex items-center gap-2 text-lg">
-                      <TrendingUp size={20} className="text-indigo-500" /> 營養組成雷達圖分析
-                    </h4>
-                    <div className="h-72 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={getRadarData(selectedChatRecord)}>
-                          <PolarGrid stroke="#e2e8f0" strokeWidth={2} />
-                          <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fontBold: 800, fill: '#475569' }} />
-                          <Radar name="餐點比例" dataKey="A" stroke="#6366f1" strokeWidth={3} fill="#6366f1" fillOpacity={0.4} />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
+            return (
+              <div key={chat.id || idx} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex justify-end">
+                  <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white px-5 py-3 sm:px-6 sm:py-4 rounded-[24px] rounded-tr-none max-w-[85%] sm:max-w-[75%] shadow-md shadow-emerald-200/50 font-bold leading-relaxed text-sm sm:text-base border-b-4 border-teal-700 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-emerald-300/60 hover:-translate-y-1 cursor-default">
+                    {userText}
                   </div>
                 </div>
-                <div className="self-start max-w-[85%] animate-in slide-in-from-left-4">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-emerald-500 p-3 rounded-2xl text-white shadow-lg border-2 border-emerald-400"><Sparkles size={20} /></div>
-                    <div className="bg-emerald-600 text-white p-5 rounded-3xl rounded-tl-none shadow-md border-2 border-emerald-500">
-                      <p className="text-xs font-black opacity-80 mb-3 border-b border-emerald-400 pb-2">AI 智慧營養師點評</p>
-                      <p className="text-base font-bold leading-relaxed italic">"{selectedChatRecord.ai_evaluation}"</p>
+
+                {aiText && (
+                  <div className="flex justify-start items-start space-x-2 sm:space-x-3 group cursor-default">
+                    <div className="bg-emerald-600 p-2 sm:p-2.5 rounded-2xl text-white shadow-md mt-1 border-2 border-emerald-400 shrink-0 transition-all duration-300 group-hover:rotate-12 group-hover:scale-110">
+                      <Activity size={16} className="sm:w-[18px] sm:h-[18px]" />
+                    </div>
+                    <div className="bg-white border-2 border-slate-200 text-slate-800 px-5 py-4 sm:px-6 sm:py-5 rounded-[28px] rounded-tl-none max-w-[90%] sm:max-w-[85%] shadow-sm shadow-slate-200/50 leading-relaxed text-sm sm:text-base transition-all duration-300 group-hover:border-emerald-300 group-hover:shadow-lg group-hover:shadow-emerald-100/50 group-hover:-translate-y-1">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ _, ...props }) => <p className="mb-4 last:mb-0 text-slate-800 font-medium leading-7" {...props} />,
+                          ul: ({ _, ...props }) => <ul className="list-disc ml-5 sm:ml-6 mb-4 space-y-2 border-l-2 border-emerald-100 pl-3 sm:pl-4" {...props} />,
+                          ol: ({ _, ...props }) => <ol className="list-decimal ml-5 sm:ml-6 mb-4 space-y-2" {...props} />,
+                          li: ({ node, ...props }) => <li className="text-slate-800 font-medium" {...props} />,
+                          h1: ({ node, ...props }) => <h1 className="text-xl sm:text-2xl font-black mb-6 mt-8 text-white bg-emerald-600 px-4 py-2 rounded-xl shadow-md inline-block" {...props} />,
+                          h2: ({ node, ...props }) => <h2 className="text-lg sm:text-xl font-black mb-4 mt-8 text-emerald-800 border-b-4 border-emerald-200 inline-block pb-1" {...props} />,
+                          h3: ({ node, ...props }) => <h3 className="text-base sm:text-lg font-extrabold mb-3 mt-6 text-teal-700 flex items-center before:content-[''] before:w-2 before:h-2 before:bg-teal-400 before:mr-2 before:rounded-full" {...props} />,
+                          table: ({ node, ...props }) => <div className="overflow-x-auto my-6 rounded-2xl border-2 border-slate-300 shadow-inner bg-slate-50 p-1"><table className="min-w-full border-collapse" {...props} /></div>,
+                          thead: ({ node, ...props }) => <thead className="bg-emerald-600 text-white" {...props} />,
+                          th: ({ node, ...props }) => <th className="px-4 py-3 text-left text-xs sm:text-sm font-black uppercase tracking-wider border-r border-emerald-500 last:border-0" {...props} />,
+                          td: ({ node, ...props }) => <td className="px-4 py-3 text-xs sm:text-sm font-bold text-slate-700 border-b border-slate-300 border-r border-slate-200 last:border-r-0" {...props} />,
+                          tr: ({ node, ...props }) => <tr className="even:bg-white odd:bg-slate-100/50 hover:bg-emerald-50 transition-colors" {...props} />,
+                          strong: ({ node, ...props }) => <strong className="font-black text-emerald-800 bg-emerald-100/50 px-1.5 py-0.5 rounded" {...props} />,
+                          code: ({ node, inline, ...props }) => inline ? <code className="bg-slate-100 text-emerald-700 px-1.5 py-0.5 rounded-md text-xs font-black border border-slate-200" {...props} /> : <pre className="bg-slate-900 text-emerald-300 p-4 sm:p-5 rounded-2xl overflow-x-auto my-5 text-xs font-mono border-l-8 border-emerald-500 shadow-lg"><code {...props} /></pre>,
+                          blockquote: ({ node, ...props }) => <blockquote className="border-l-4 sm:border-l-8 border-emerald-300 pl-4 sm:pl-5 italic text-slate-600 my-6 bg-emerald-50/50 py-3 sm:py-4 rounded-r-2xl font-bold text-sm sm:text-base" {...props} />,
+                        }}
+                      >
+                        {aiText}
+                      </ReactMarkdown>
                     </div>
                   </div>
-                </div>
-              </>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-slate-300">
-                <Info size={64} className="mb-4 opacity-20" />
-                <p className="text-lg font-black">點擊左側紀錄開始深度分析</p>
+                )}
               </div>
-            )}
+            );
+          })
+        )}
+
+        {isThinking && (
+          <div className="flex justify-start items-center space-x-2 sm:space-x-3 animate-pulse pb-4">
+            <div className="bg-emerald-600 p-2 sm:p-2.5 rounded-2xl text-white border-2 border-emerald-400 shrink-0">
+              <Activity size={16} className="animate-spin sm:w-[18px] sm:h-[18px]" />
+            </div>
+            <div className="bg-white border-2 border-slate-200 p-4 sm:p-5 rounded-2xl rounded-tl-none shadow-sm flex items-center space-x-2">
+              <span className="text-xs sm:text-sm font-black text-slate-500">AI 正在分析...</span>
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }}></div>
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '400ms' }}></div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {showMobileDetail && selectedChatRecord && (
-        <div className="fixed inset-0 z-[100] md:hidden flex items-end justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-h-[90vh] rounded-t-[40px] shadow-2xl overflow-y-auto animate-in slide-in-from-bottom-10 duration-500">
-            <div className="sticky top-0 bg-white p-4 flex justify-center border-b border-slate-100 z-10">
-              <div className="w-12 h-1.5 bg-slate-200 rounded-full mb-2" />
-              <button onClick={() => setShowMobileDetail(false)} className="absolute right-6 top-4 bg-slate-100 p-2 rounded-full text-slate-500"><X size={20} /></button>
-            </div>
-
-            <div className="p-6 space-y-8">
-              <div className="flex justify-between items-center">
-                <div className="bg-indigo-600 text-white px-5 py-2 rounded-2xl shadow-lg">
-                  <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Health Score</p>
-                  <p className="text-3xl font-black">{selectedChatRecord.ai_health_score}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-slate-400">辨識時間</p>
-                  <p className="text-sm font-black text-slate-700">{selectedChatRecord.created_at?.split('.')[0]}</p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-4 rounded-[32px] border-2 border-slate-100 shadow-inner">
-                <h4 className="text-center font-black text-slate-800 mb-2">營養密度雷達圖</h4>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="75%" data={getRadarData(selectedChatRecord)}>
-                      <PolarGrid stroke="#cbd5e1" strokeWidth={1} />
-                      <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fontWeight: 800, fill: '#64748b' }} />
-                      <Radar name="餐點比例" dataKey="A" stroke="#4f46e5" strokeWidth={3} fill="#4f46e5" fillOpacity={0.4} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="bg-emerald-50 p-6 rounded-[32px] border-2 border-emerald-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles size={18} className="text-emerald-600" />
-                  <span className="font-black text-emerald-800">AI 營養師建議</span>
-                </div>
-                <p className="text-sm font-bold text-emerald-900 leading-relaxed italic">
-                  "{selectedChatRecord.ai_evaluation}"
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pb-10">
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                  <p className="text-[10px] font-bold text-slate-400 mb-1">預估總熱量</p>
-                  <p className="text-lg font-black text-slate-800">{selectedChatRecord.total_calories?.toFixed(0)} kcal</p>
-                </div>
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                  <p className="text-[10px] font-bold text-slate-400 mb-1">分析狀態</p>
-                  <p className="text-lg font-black text-emerald-600">辨識成功</p>
-                </div>
-              </div>
+      {/* --- 輸入區域 --- */}
+      {/* 🔽 魔法 3：強制輸入框字體為 text-base，防止 iOS 點擊輸入框時畫面被強制放大 */}
+      <div className="p-3 sm:p-6 bg-white border-t-2 border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] relative z-30 shrink-0 pb-[max(env(safe-area-inset-bottom),12px)] sm:pb-6">
+        <form onSubmit={handleAsk} className="flex space-x-2 sm:space-x-3 max-w-5xl mx-auto">
+          <div className="relative flex-1 group">
+            <input
+              type="text"
+              value={question}
+              onChange={e => setQuestion(e.target.value)}
+              placeholder="輸入健康或飲食問題..."
+              disabled={isThinking}
+              className="w-full pl-5 pr-12 py-3 sm:px-6 sm:py-4 border-2 border-slate-200 rounded-full sm:rounded-[24px] focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none bg-slate-50 focus:bg-white transition-all text-base font-bold text-slate-800 placeholder:text-slate-400"
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors hidden sm:block">
+              <BrainCircuit size={20} />
             </div>
           </div>
-        </div>
-      )}
+          <button
+            type="submit"
+            disabled={isThinking || !question.trim()}
+            className="bg-emerald-600 text-white px-5 sm:px-8 py-3 sm:py-4 rounded-full sm:rounded-[24px] hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-200 border-b-4 border-emerald-800 flex items-center justify-center shrink-0"
+          >
+            <Send size={20} className={`sm:w-6 sm:h-6 ${question.trim() && !isThinking ? 'animate-bounce' : ''}`} />
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
 
-export default Diet;
+export default Consult;
