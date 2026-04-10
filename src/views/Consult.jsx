@@ -8,6 +8,7 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isThinking, setIsThinking] = useState(false);
   const endOfChatRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   const historyData = user?.aiConsultations || user?.ai_consultations;
 
@@ -23,7 +24,13 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
   }, [historyData]);
 
   useEffect(() => {
-    endOfChatRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      // 這樣寫只會滾動內部的 div，絕對不會扯動外層的 Safari 網頁！
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [chatHistory, isThinking]);
 
   const handleAsk = async (e) => {
