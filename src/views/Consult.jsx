@@ -29,13 +29,8 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
   }, []);
 
   useEffect(() => {
-    if (historyData) {
-      const sortedHistory = [...historyData].sort((a, b) => {
-        const timeA = new Date(a.createdAt || a.created_at || 0).getTime();
-        const timeB = new Date(b.createdAt || b.created_at || 0).getTime();
-        return timeA - timeB;
-      });
-      setChatHistory(sortedHistory);
+    if (historyData && Array.isArray(historyData)) {
+      setChatHistory([...historyData]);
     }
   }, [historyData]);
 
