@@ -11,29 +11,30 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
 
   const historyData = user?.aiConsultations || user?.ai_consultations;
 
-  // 🔽 魔法 1：進入聊天室時，直接凍結外層網頁的滾動與橡皮筋效應
+  // 魔法 1：進入聊天室時，直接凍結外層網頁的滾動與橡皮筋效應
   useEffect(() => {
-    // 儲存原本的設定
     const originalOverflow = document.body.style.overflow;
     const originalOverscroll = document.body.style.overscrollBehavior;
 
-    // 鎖死背景，禁止任何滑動拉扯
     document.body.style.overflow = 'hidden';
     document.body.style.overscrollBehavior = 'none';
 
     return () => {
-      // 離開頁面時還原
       document.body.style.overflow = originalOverflow;
       document.body.style.overscrollBehavior = originalOverscroll;
     };
   }, []);
 
+  // 🔽 魔法 2：既然資料庫是 [新 -> 舊]，我們直接反轉成 [舊 -> 新] 即可！
+  // 完全不需要去 parse 時間，完美避開所有 Safari 的 Bug！
   useEffect(() => {
     if (historyData && Array.isArray(historyData)) {
-      setChatHistory([...historyData]);
+      // 淺拷貝並反轉陣列
+      setChatHistory([...historyData].reverse());
     }
   }, [historyData]);
 
+  // 🔽 魔法 3：回到正常的「滑動到最底部」邏輯
   useEffect(() => {
     const scrollToBottom = () => {
       if (chatContainerRef.current) {
@@ -56,6 +57,7 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
     setQuestion('');
     setIsThinking(true);
 
+    // 正常的附加到最後面
     const tempHistory = [...chatHistory, { id: Date.now(), question: newQ, aiResponse: null }];
     setChatHistory(tempHistory);
 
@@ -67,20 +69,20 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
 
       setChatHistory(prev => {
         const updated = [...prev];
+        // 更新最後一筆
         updated[updated.length - 1].aiResponse = data.reply || data.aiResponse || data.ai_response || data.answer || data.response || "分析完成，請參考建議內容。";
         return updated;
       });
       fetchProfile();
     } catch (err) {
       showNotification(err.message, 'error');
-      setChatHistory(prev => prev.slice(0, -1));
+      setChatHistory(prev => prev.slice(0, -1)); // 拔掉最後一筆
     } finally {
       setIsThinking(false);
     }
   };
 
   return (
-    // 🔽 魔法 2：手機版改為絕對的滿版佈局 (w-[100vw])，移除邊界與圓角，電腦版維持原本的優雅設計
     <div className="max-w-5xl mx-auto bg-slate-50 sm:bg-white/80 sm:backdrop-blur-md sm:rounded-[32px] sm:shadow-2xl sm:border-2 border-slate-100 overflow-hidden flex flex-col h-[calc(100dvh-80px)] sm:h-[calc(100vh-140px)] relative w-[100vw] -mx-4 -mt-4 sm:w-auto sm:mx-0 sm:mt-0 z-30">
 
       {/* --- 頂欄 --- */}
@@ -106,10 +108,10 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
       {/* --- 對話區域 --- */}
       <div
         ref={chatContainerRef}
-        className="flex-1 p-4 sm:p-8 overflow-y-auto overscroll-none bg-slate-50 space-y-6 scrollbar-thin scrollbar-thumb-slate-200"
+        className="flex-1 p-4 sm:p-8 overflow-y-auto overscroll-none bg-slate-50 space-y-6 scrollbar-thin scrollbar-thumb-slate-200 flex flex-col"
       >
         {chatHistory.length === 0 && !isThinking ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400">
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 m-auto">
             <div className="bg-white p-6 sm:p-8 rounded-[40px] shadow-xl shadow-emerald-100/50 mb-6 border-2 border-emerald-50 transform hover:scale-110 transition-transform">
               <MessageSquare size={48} className="text-emerald-400 sm:w-14 sm:h-14" />
             </div>
@@ -168,8 +170,9 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
           })
         )}
 
+        {/* 思考中的動畫回到最底下 */}
         {isThinking && (
-          <div className="flex justify-start items-center space-x-2 sm:space-x-3 animate-pulse pb-4">
+          <div className="flex justify-start items-center space-x-2 sm:space-x-3 animate-pulse pb-4 mt-auto">
             <div className="bg-emerald-600 p-2 sm:p-2.5 rounded-2xl text-white border-2 border-emerald-400 shrink-0">
               <Activity size={16} className="animate-spin sm:w-[18px] sm:h-[18px]" />
             </div>
@@ -186,7 +189,6 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
       </div>
 
       {/* --- 輸入區域 --- */}
-      {/* 🔽 魔法 3：強制輸入框字體為 text-base，防止 iOS 點擊輸入框時畫面被強制放大 */}
       <div className="p-3 sm:p-6 bg-white border-t-2 border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] relative z-30 shrink-0 pb-[max(env(safe-area-inset-bottom),12px)] sm:pb-6">
         <form onSubmit={handleAsk} className="flex space-x-2 sm:space-x-3 max-w-5xl mx-auto">
           <div className="relative flex-1 group">
