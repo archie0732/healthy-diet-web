@@ -21,7 +21,6 @@ const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) =
         let width = img.width;
         let height = img.height;
 
-        // 計算等比例縮放
         if (width > height) {
           if (width > maxWidth) {
             height = Math.round((height *= maxWidth / width));
@@ -34,22 +33,22 @@ const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) =
           }
         }
 
-        // 畫入 Canvas
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // 轉回 File 物件 (強制轉為 jpeg 格式以確保最高相容性)
+        // 🚨 關鍵修改：直接回傳 Blob，不要在前端包裝成 File
         canvas.toBlob((blob) => {
-          const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
-            type: 'image/jpeg',
-            lastModified: Date.now(),
-          });
-          resolve(compressedFile);
+          if (!blob) {
+            reject(new Error("圖片壓縮失敗"));
+            return;
+          }
+          resolve(blob);
         }, 'image/jpeg', quality);
       };
+      img.onerror = () => reject(new Error("圖片載入失敗"));
     };
     reader.onerror = (error) => reject(error);
   });
@@ -112,11 +111,12 @@ const Diet = ({ apiFetch, showNotification }) => {
     setIsAnalyzing(true);
 
     try {
-      // 執行壓縮，這在手機上只需不到 0.1 秒
-      const compressedFile = await compressImage(selectedFile);
-
+      const compressedBlob = await compressImage(selectedFile);
       const formData = new FormData();
-      formData.append('image', compressedFile); // 傳送壓縮後的檔案
+
+      // 🚨 關鍵修改：手動強制把檔名命名為 "upload.jpg"
+      // 這樣可以 100% 避開 Rust/Python 遇到中文檔名或 iPhone 特殊格式時造成的 400 解析錯誤
+      formData.append('image', compressedBlob, 'upload.jpg');
 
       const data = await apiFetch('/diet', { method: 'POST', body: formData });
       setResult(data);
