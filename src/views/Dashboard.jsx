@@ -79,15 +79,16 @@ const Dashboard = ({ user, apiFetch }) => {
   const safeParseDate = (dateString) => {
     if (!dateString) return new Date();
 
-    let safeStr = dateString
-      .replace(' ', 'T')
-      .replace(' UTC', 'Z')
-      .replace(/\+00$/, 'Z');
+    let safeStr = dateString.replace(' ', 'T');
+
+    safeStr = safeStr.replace(/(\.\d{3})\d+/, '$1');
+
+    safeStr = safeStr.replace(/\+00$/, 'Z').replace(' UTC', 'Z');
 
     let d = new Date(safeStr);
 
     if (isNaN(d.getTime())) {
-      safeStr = safeStr.split('.')[0] + 'Z';
+      safeStr = dateString.split('.')[0].replace(' ', 'T') + 'Z';
       d = new Date(safeStr);
     }
 
@@ -95,8 +96,11 @@ const Dashboard = ({ user, apiFetch }) => {
   };
 
   const trendData = [...dietRecords].reverse().map(record => {
-    const date = new Date(record.created_at || record.createdAt);
-    return { date: `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`, score: record.ai_health_score };
+    const date = safeParseDate(record.created_at || record.createdAt);
+    return {
+      date: `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
+      score: Number(record.ai_health_score) || 0
+    };
   });
 
   const latestMeal = dietRecords.length > 0 ? dietRecords[0] : null;
