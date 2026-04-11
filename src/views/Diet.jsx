@@ -9,6 +9,52 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
+// 🔽 魔法 1：前端圖片壓縮引擎 (限制最大尺寸 1024px，品質 0.8)
+const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        // 計算等比例縮放
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height *= maxWidth / width));
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width *= maxHeight / height));
+            height = maxHeight;
+          }
+        }
+
+        // 畫入 Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // 轉回 File 物件 (強制轉為 jpeg 格式以確保最高相容性)
+        canvas.toBlob((blob) => {
+          const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        }, 'image/jpeg', quality);
+      };
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 const Diet = ({ apiFetch, showNotification }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -60,18 +106,24 @@ const Diet = ({ apiFetch, showNotification }) => {
     }
   };
 
+  // 🔽 魔法 2：上傳前先經過壓縮引擎處理
   const handleUpload = async () => {
     if (!selectedFile) return;
     setIsAnalyzing(true);
-    const formData = new FormData();
-    formData.append('image', selectedFile);
+
     try {
+      // 執行壓縮，這在手機上只需不到 0.1 秒
+      const compressedFile = await compressImage(selectedFile);
+
+      const formData = new FormData();
+      formData.append('image', compressedFile); // 傳送壓縮後的檔案
+
       const data = await apiFetch('/diet', { method: 'POST', body: formData });
       setResult(data);
       showNotification('分析完成！');
       fetchHistory();
     } catch (err) {
-      showNotification(err.message, 'error');
+      showNotification(err.message || '圖片分析失敗，請重試', 'error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -93,7 +145,6 @@ const Diet = ({ apiFetch, showNotification }) => {
     { subject: '油脂', A: rec.nuts_area || 0 },
   ];
 
-  // 輔助函式：清除當前照片與結果
   const clearSelection = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
@@ -116,14 +167,12 @@ const Diet = ({ apiFetch, showNotification }) => {
           {previewUrl ? (
             <div className={`relative border-2 rounded-[32px] p-4 shadow-inner overflow-hidden transition-all duration-500 ${result ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}>
 
-              {/* 🔽 核心：如果 result 存在，就顯示 YOLO 回傳的 base64 圖片；否則顯示本地預覽圖 */}
               <img
                 src={result?.image_base64 ? `data:image/jpeg;base64,${result.image_base64}` : previewUrl}
                 alt="Food Detection"
                 className="mx-auto max-h-80 rounded-2xl object-contain shadow-md"
               />
 
-              {/* YOLO 辨識完成的酷炫標籤 */}
               {result?.image_base64 && (
                 <div className="absolute top-6 left-6 bg-emerald-500 text-white px-4 py-2 rounded-xl font-black text-xs shadow-lg flex items-center gap-2 animate-in fade-in zoom-in duration-500 border-2 border-emerald-400">
                   <ScanLine size={16} className="animate-pulse" /> AI 視覺標註完成
@@ -149,7 +198,6 @@ const Diet = ({ apiFetch, showNotification }) => {
             </div>
           )}
 
-          {/* 🔽 新增：辨識成功的即時戰情卡 (給教授看這塊超加分) */}
           {result && (
             <div className="bg-emerald-50 rounded-[32px] p-6 sm:p-8 border-2 border-emerald-200 shadow-sm animate-in slide-in-from-top-4 duration-500">
               <div className="flex justify-between items-center mb-6 border-b-2 border-emerald-100 pb-4">
@@ -182,7 +230,6 @@ const Diet = ({ apiFetch, showNotification }) => {
           )}
         </div>
 
-        {/* 若還沒辨識出結果且有照片，顯示大按鈕 */}
         {!result && previewUrl && (
           <button
             onClick={handleUpload}
@@ -194,7 +241,7 @@ const Diet = ({ apiFetch, showNotification }) => {
         )}
       </div>
 
-      {/* --- 下部：對話式紀錄 (保留超棒的雷達圖功能) --- */}
+      {/* --- 下部：對話式紀錄 --- */}
       <div className="bg-white rounded-[40px] shadow-sm border-2 border-slate-100 overflow-hidden flex flex-col h-[600px] md:h-[700px]">
         <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -215,7 +262,6 @@ const Diet = ({ apiFetch, showNotification }) => {
               >
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                    {/* 防呆：如果時間有小數點，做切割 */}
                     {rec.created_at?.split('.')[0] || 'Unknown'}
                   </span>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${rec.ai_health_score >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>Score: {rec.ai_health_score}</span>
