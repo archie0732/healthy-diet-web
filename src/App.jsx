@@ -29,6 +29,7 @@ export default function App() {
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
+    sessionStorage.removeItem('hasSeenWelcome_v1.2');
   };
 
   const apiFetch = async (endpoint, options = {}) => {
@@ -53,8 +54,47 @@ export default function App() {
     } catch (err) { console.error(err); }
   };
 
+  // 🌟 1. 全域網站造訪人數紀錄 (只在該 Session 初次載入時觸發一次)
   useEffect(() => {
-    if (token) fetchProfile();
+    const recordGlobalVisit = async () => {
+      if (sessionStorage.getItem('hasRecordedVisit')) return;
+      if (!token) return; // 確保有登入才算數
+
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        };
+
+        const res = await fetch(`${API_BASE}/record`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({})
+        });
+
+        if (res.ok) {
+          sessionStorage.setItem('hasRecordedVisit', 'true');
+          console.log("✅ [造訪紀錄] 成功發送並標記！");
+        }
+      } catch (err) {
+        console.error('造訪紀錄連線錯誤:', err);
+      }
+    };
+
+    recordGlobalVisit();
+  }, [token]);
+
+
+  // 🌟 2. 抓取個人資料 (這就是被我手殘刪掉的罪魁禍首！)
+  useEffect(() => {
+    const initProfile = async () => {
+      // 只要有 token，就去後端把 user 資料撈回來
+      if (token) {
+        await fetchProfile();
+      }
+    };
+
+    initProfile();
   }, [token]);
 
   return (
@@ -70,7 +110,7 @@ export default function App() {
             <Route path="/" element={<Dashboard user={user} apiFetch={apiFetch} />} />
             <Route path="/consult" element={<Consult user={user} apiFetch={apiFetch} fetchProfile={fetchProfile} showNotification={showNotification} />} />
             <Route path="/diet" element={<Diet apiFetch={apiFetch} showNotification={showNotification} />} />
-            <Route path="/profile" element={<Profile user={user} apiFetch={apiFetch} fetchProfile={fetchProfile} showNotification={showNotification} />} />
+            <Route path="/profile" element={<Profile user={user} apiFetch={apiFetch} fetchProfile={fetchProfile} showNotification={showNotification} handleLogout={handleLogout} />} />
             <Route path="/member" element={<Member />} />
             <Route path="/api" element={<ApiDocs />} />
             <Route path="/privacy" element={<Privacy />} />

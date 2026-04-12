@@ -1,101 +1,130 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Activity, Flame, TrendingUp, Calendar, AlertTriangle, Bell, X, CheckCircle2, PieChart as PieChartIcon, Clock, HeartPulse, Scale, Globe, Users, Sparkles, Database, Image as ImageIcon } from 'lucide-react';
 import {
-  MessageSquare, Camera, Activity, User, Server,
-  CheckCircle2, Sparkles, TrendingUp, PieChart, History,
-  Calendar, X, AlertTriangle, Flame, Calculator, Info
-} from 'lucide-react';
-import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Cell
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+  Radar, RadarChart, PolarGrid, PolarAngleAxis
 } from 'recharts';
 
-const API_BASE = '/api';
-
-const SLOGANS = [
-  "今天也是邁向健康的一天。多喝水，保持愉悅的心情喔！",
-  "健康不是一蹴可幾，而是每天的小小累積。繼續加油！",
-  "傾聽身體的聲音，給它最需要的營養與適當的休息。",
-  "你的每一份堅持，都在為未來的健康打下堅實的基礎。",
-  "不求完美，只求進步。今天的你，比昨天更健康了嗎？"
-];
+// 專治 Safari 時間解析器
+const safeParseDate = (dateString) => {
+  if (!dateString) return new Date();
+  let safeStr = dateString.replace(' ', 'T');
+  safeStr = safeStr.replace(/(\.\d{3})\d+/, '$1');
+  safeStr = safeStr.replace(/\+00$/, 'Z').replace(' UTC', 'Z');
+  let d = new Date(safeStr);
+  if (isNaN(d.getTime())) {
+    safeStr = dateString.split('.')[0].replace(' ', 'T') + 'Z';
+    d = new Date(safeStr);
+  }
+  return isNaN(d.getTime()) ? new Date() : d;
+};
 
 const Dashboard = ({ user, apiFetch }) => {
-  const [health, setHealth] = useState(null);
   const [dietRecords, setDietRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+  // 詳情彈窗相關 State
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const [currentSlogan, setCurrentSlogan] = useState("");
-  const [activeTooltip, setActiveTooltip] = useState(null); // 控制 BMI/BMR 詳細視窗 ('bmi' | 'bmr' | null)
+  const [activeModalTab, setActiveModalTab] = useState('analysis'); // 'analysis' | 'image'
+  const [recordImageBase64, setRecordImageBase64] = useState(null);
+  const [imageFetchStatus, setImageFetchStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'error'
+
+  const [visitStats, setVisitStats] = useState([]);
+  const [todayVisit, setTodayVisit] = useState(0);
 
   useEffect(() => {
-    setCurrentSlogan(SLOGANS[Math.floor(Math.random() * SLOGANS.length)]);
+    const hasSeenWelcome = sessionStorage.getItem('hasSeenWelcome_v1.2');
+    if (!hasSeenWelcome) {
+      setShowWelcomeModal(true);
+      sessionStorage.setItem('hasSeenWelcome_v1.2', 'true');
+    }
+    fetchDashboardData();
+  }, []);
 
-    fetch(`${API_BASE}/health`)
-      .then(() => setHealth({ status: 'ok' }))
-      .catch(console.error);
-
-    const fetchRecords = async () => {
-      try {
-        const data = await apiFetch('/diet_record', { method: 'GET' });
-        if (Array.isArray(data)) setDietRecords(data);
-      } catch (err) {
-        console.error("無法取得飲食紀錄:", err);
+  const fetchDashboardData = async () => {
+    try {
+      const data = await apiFetch('/diet_record');
+      if (Array.isArray(data)) {
+        setDietRecords(data.reverse());
       }
-    };
-    fetchRecords();
-  }, [apiFetch]);
-
-  const isDesktop = () => window.innerWidth >= 768;
-  const handleMouseEnter = (type) => { if (isDesktop()) setActiveTooltip(type); };
-  const handleMouseLeave = () => { if (isDesktop()) setActiveTooltip(null); };
-  const handleClick = (type) => { if (!isDesktop()) setActiveTooltip(prev => prev === type ? null : type); };
-
-  let bmi = null;
-  let bmiStatus = '';
-  let bmiColor = 'text-slate-500 bg-slate-100 border-slate-200';
-
-  const heightM = user?.height ? user.height / 100 : null;
-  const weight = user?.weight || null;
-  const age = user?.age || null;
-  const gender = user?.gender || null;
-
-  if (heightM && weight) {
-    bmi = (weight / (heightM * heightM)).toFixed(1);
-    if (bmi < 18.5) { bmiStatus = '過輕'; bmiColor = 'text-blue-600 bg-blue-50 border-blue-200'; }
-    else if (bmi < 24) { bmiStatus = '健康'; bmiColor = 'text-emerald-600 bg-emerald-50 border-emerald-200'; }
-    else if (bmi < 27) { bmiStatus = '過重'; bmiColor = 'text-orange-600 bg-orange-50 border-orange-200'; }
-    else { bmiStatus = '肥胖'; bmiColor = 'text-red-600 bg-red-50 border-red-200'; }
-  }
-
-  let bmr = null;
-  if (heightM && weight && age && gender) {
-    if (gender === 'Male') {
-      bmr = (10 * weight) + (6.25 * user.height) - (5 * age) + 5;
-    } else if (gender === 'Female') {
-      bmr = (10 * weight) + (6.25 * user.height) - (5 * age) - 161;
+      const statsData = await apiFetch('/month_stats');
+      if (Array.isArray(statsData)) {
+        setVisitStats(statsData);
+        const todayData = statsData[statsData.length - 1];
+        if (todayData) {
+          setTodayVisit(todayData.visit_count);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch records:', err);
+    } finally {
+      setLoading(false);
     }
-  }
-
-  const safeParseDate = (dateString) => {
-    if (!dateString) return new Date();
-
-    let safeStr = dateString.replace(' ', 'T');
-
-    safeStr = safeStr.replace(/(\.\d{3})\d+/, '$1');
-
-    safeStr = safeStr.replace(/\+00$/, 'Z').replace(' UTC', 'Z');
-
-    let d = new Date(safeStr);
-
-    if (isNaN(d.getTime())) {
-      safeStr = dateString.split('.')[0].replace(' ', 'T') + 'Z';
-      d = new Date(safeStr);
-    }
-
-    return isNaN(d.getTime()) ? new Date() : d;
   };
 
-  const trendData = [...dietRecords].reverse().map(record => {
+  // --- 彈窗處理邏輯 ---
+  const closeModal = () => {
+    setSelectedRecord(null);
+    setActiveModalTab('analysis');
+    setRecordImageBase64(null);
+    setImageFetchStatus('idle');
+  };
+
+  const handleTabSwitch = async (tab) => {
+    setActiveModalTab(tab);
+    if (tab === 'image' && imageFetchStatus === 'idle' && selectedRecord?.id) {
+      setImageFetchStatus('loading');
+      try {
+        // 🌟 改成 POST，並把 id 塞進 JSON body 裡面
+        const res = await apiFetch(`/diet_image`, {
+          method: 'POST',
+          body: JSON.stringify({ record_id: selectedRecord.id })
+        });
+
+        if (res.image_base64) {
+          setRecordImageBase64(res.image_base64);
+          setImageFetchStatus('success');
+        } else {
+          setImageFetchStatus('error');
+        }
+      } catch (e) {
+        console.error('Failed to fetch image:', e);
+        setImageFetchStatus('error');
+      }
+    }
+  };
+
+  // --- 身體數據計算 (BMI & BMR) ---
+  const height = Number(user?.height) || 0;
+  const weight = Number(user?.weight) || 0;
+  const age = Number(user?.age) || 25;
+  const gender = user?.gender || 'male';
+
+  let bmi = 0;
+  let bmiStatus = { label: '未提供數據', color: 'text-slate-400', bg: 'bg-slate-100' };
+  let bmr = 0;
+  let heightInMeters = 0;
+
+  if (height > 0 && weight > 0) {
+    heightInMeters = height / 100;
+    bmi = Number((weight / (heightInMeters * heightInMeters)).toFixed(1));
+
+    if (bmi < 18.5) bmiStatus = { label: '體重過輕', color: 'text-blue-600', bg: 'bg-blue-100' };
+    else if (bmi >= 18.5 && bmi < 24) bmiStatus = { label: '健康標準', color: 'text-emerald-600', bg: 'bg-emerald-100' };
+    else if (bmi >= 24 && bmi < 27) bmiStatus = { label: '過重', color: 'text-amber-600', bg: 'bg-amber-100' };
+    else bmiStatus = { label: '肥胖', color: 'text-rose-600', bg: 'bg-rose-100' };
+
+    if (gender === 'male' || gender === '男') {
+      bmr = Math.round((10 * weight) + (6.25 * height) - (5 * age) + 5);
+    } else {
+      bmr = Math.round((10 * weight) + (6.25 * height) - (5 * age) - 161);
+    }
+  }
+
+  // --- 數據處理 ---
+  const trendData = dietRecords.map(record => {
     const date = safeParseDate(record.created_at || record.createdAt);
     return {
       date: `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
@@ -103,278 +132,431 @@ const Dashboard = ({ user, apiFetch }) => {
     };
   });
 
-  const latestMeal = dietRecords.length > 0 ? dietRecords[0] : null;
+  const latestMeal = dietRecords.length > 0 ? dietRecords[dietRecords.length - 1] : null;
+
   const nutritionData = latestMeal ? [
-    { name: '穀物', value: latestMeal.grain_calories, color: '#FCD34D' },
-    { name: '肉類蛋白', value: latestMeal.protein_meat_calories, color: '#F87171' },
-    { name: '植物蛋白', value: latestMeal.protein_bean_calories, color: '#A7F3D0' },
-    { name: '蔬菜', value: latestMeal.vegetable_calories, color: '#34D399' },
-    { name: '水果', value: latestMeal.fruit_calories, color: '#F472B6' },
-    { name: '乳製品', value: latestMeal.dairy_calories, color: '#93C5FD' },
-    { name: '堅果', value: latestMeal.nuts_calories, color: '#D8B4E2' },
+    { name: '穀物', value: Number(latestMeal.grain_calories) || 0, color: '#f59e0b' },
+    { name: '肉蛋', value: Number(latestMeal.protein_meat_calories) || 0, color: '#ef4444' },
+    { name: '蔬菜', value: Number(latestMeal.vegetable_calories) || 0, color: '#10b981' },
   ].filter(item => item.value > 0) : [];
 
-  const recentRecords = dietRecords.slice(0, 5);
-  const formatDate = (dateString) => {
-    const d = safeParseDate(dateString);
-    if (isNaN(d.getTime())) return '時間未知';
-    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  };
+  const getRadarData = (rec) => [
+    { subject: '穀物', A: Number(rec.grain_area) || 0 },
+    { subject: '肉蛋', A: Number(rec.protein_meat_area) || 0 },
+    { subject: '蔬菜', A: Number(rec.vegetable_area) || 0 },
+    { subject: '水果', A: Number(rec.fruit_area) || 0 },
+    { subject: '乳品', A: Number(rec.dairy_area) || 0 },
+    { subject: '油脂', A: Number(rec.nuts_area) || 0 },
+  ];
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-500 relative pb-10">
+    <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4 sm:px-6 relative">
 
-      <div className="bg-linear-to-r from-emerald-500 via-green-500 to-teal-500 rounded-3xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden border-2 border-emerald-400/50">
-        <div className="relative z-10">
-          <h1 className="text-2xl sm:text-4xl font-extrabold mb-2 sm:mb-3">
-            您好，{user?.nickname || '健康實踐者'}！ 👋
-          </h1>
-          <p className="text-emerald-50 text-sm sm:text-lg max-w-xl leading-relaxed font-medium">
-            {currentSlogan}
-          </p>
-        </div>
-        <div className="absolute top-0 right-0 -mt-4 -mr-4 sm:-mt-10 sm:-mr-10 text-white opacity-10 transform rotate-12">
-          <Activity className="w-48 h-48 sm:w-64 sm:h-64" />
-        </div>
-      </div>
+      {/* --- 初次登入與更新推播彈窗 --- */}
+      {showWelcomeModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] p-6 sm:p-8 max-w-md w-full relative animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 border-4 border-slate-100">
+            <button onClick={() => setShowWelcomeModal(false)} className="absolute top-4 right-4 bg-slate-100 p-2 rounded-full text-slate-500 hover:bg-slate-200 hover:rotate-90 transition-all">
+              <X size={20} />
+            </button>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {user?.email === 'ckck@gmail.com' && (
+              <div className="bg-rose-50 border-4 border-rose-200 p-5 rounded-2xl mb-6 relative overflow-hidden">
+                <AlertTriangle size={80} className="absolute -right-4 -bottom-4 text-rose-100 opacity-50" />
+                <h3 className="font-black text-rose-700 flex items-center gap-2 mb-3 relative z-10">
+                  <AlertTriangle size={18} /> 此帳號為測試帳號
+                </h3>
+                <ol className="list-decimal ml-4 text-sm font-bold text-rose-600 space-y-2 relative z-10">
+                  <li>您無法更動此帳號的個人生理資料。</li>
+                  <li>上傳任何數據將視為您同意我們的條款，我們有權利研究、刪除與修改您的測試資料。</li>
+                </ol>
+              </div>
+            )}
 
-        <div
-          className="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-200 relative cursor-pointer sm:cursor-default"
-          onMouseEnter={() => handleMouseEnter('bmi')}
-          onMouseLeave={handleMouseLeave}
-          onClick={() => handleClick('bmi')}
-        >
-          <div className="flex justify-between items-start mb-2">
-            <div className="bg-indigo-100 p-2.5 rounded-xl text-indigo-600"><User size={22} /></div>
-            <Info size={18} className="text-slate-300" />
+            <div className="bg-emerald-50 border-4 border-emerald-100 p-5 rounded-2xl">
+              <h3 className="font-black text-emerald-700 flex items-center gap-2 mb-4">
+                <Bell size={18} /> 版本更新推播 (v1.2.0)
+              </h3>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-2">
+                  <HeartPulse size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <span className="text-sm font-bold text-slate-700"><span className="text-emerald-600">身體指數回歸：</span>為您自動計算精準的 BMI 與 BMR 基礎代謝率！</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <PieChartIcon size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <span className="text-sm font-bold text-slate-700"><span className="text-emerald-600">全新圓餅圖：</span>首頁最新一餐營養結構視覺大升級，比例更清晰！</span>
+                </li>
+              </ul>
+            </div>
+
+            <button onClick={() => setShowWelcomeModal(false)} className="w-full mt-6 bg-slate-900 text-white py-4 rounded-xl font-black text-lg hover:bg-slate-800 active:scale-95 transition-all">
+              我知道了，開始使用
+            </button>
           </div>
-          <p className="text-sm text-slate-500 font-bold mb-1">BMI 身體質量指數</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-800">{bmi || '--'}</span>
-            {bmi && <span className={`text-xs px-2 py-0.5 rounded-md font-bold border ${bmiColor}`}>{bmiStatus}</span>}
-          </div>
-          {activeTooltip === 'bmi' && (
-            <div className="absolute top-full left-0 mt-2 w-full bg-slate-800 text-white p-4 rounded-xl shadow-xl z-20 text-sm animate-in fade-in slide-in-from-top-2 border-2 border-slate-700">
-              <p className="font-bold text-emerald-400 mb-2 border-b border-slate-600 pb-1">BMI 計算公式</p>
-              <p className="font-mono bg-slate-900 p-2 rounded-lg text-center mb-3">體重(kg) ÷ 身高²(m²)</p>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between"><span className="text-blue-300">過輕</span><span>&lt; 18.5</span></div>
-                <div className="flex justify-between"><span className="text-emerald-300">健康</span><span>18.5 - 24</span></div>
-                <div className="flex justify-between"><span className="text-orange-300">過重</span><span>24 - 27</span></div>
-                <div className="flex justify-between"><span className="text-red-300">肥胖</span><span>&ge; 27</span></div>
+        </div>
+      )}
+
+      {/* --- 歷史紀錄詳情彈窗 (包含圖片 Tabs 標籤切換) --- */}
+      {selectedRecord && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] w-full max-w-lg relative animate-in zoom-in-95 slide-in-from-bottom-10 duration-500 flex flex-col max-h-[90vh] border-4 border-slate-100">
+
+            <div className="p-4 sm:p-6 border-b-4 border-slate-100 flex flex-col gap-4 bg-white rounded-t-[32px] sticky top-0 z-10">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                  <Activity size={20} className="text-emerald-500" /> 飲食紀錄詳情
+                </h3>
+                <button onClick={closeModal} className="bg-slate-100 p-2 rounded-full text-slate-500 hover:bg-slate-200 transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Tabs 切換按鈕 */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleTabSwitch('analysis')}
+                  className={`flex-1 py-2.5 rounded-xl border-4 font-black transition-colors ${activeModalTab === 'analysis' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                >
+                  分析結果
+                </button>
+                <button
+                  onClick={() => handleTabSwitch('image')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-4 font-black transition-colors ${activeModalTab === 'image' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                >
+                  <ImageIcon size={18} /> 照片紀錄
+                </button>
               </div>
             </div>
-          )}
-        </div>
 
-        <div
-          className="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-200 relative cursor-pointer sm:cursor-default"
-          onMouseEnter={() => handleMouseEnter('bmr')}
-          onMouseLeave={handleMouseLeave}
-          onClick={() => handleClick('bmr')}
-        >
-          <div className="flex justify-between items-start mb-2">
-            <div className="bg-orange-100 p-2.5 rounded-xl text-orange-600"><Flame size={22} /></div>
-            <Info size={18} className="text-slate-300" />
-          </div>
-          <p className="text-sm text-slate-500 font-bold mb-1">BMR 基礎代謝率</p>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-800">{bmr ? bmr.toFixed(0) : '--'}</span>
-            <span className="text-xs text-slate-400 font-medium">kcal/天</span>
-          </div>
-          {activeTooltip === 'bmr' && (
-            <div className="absolute top-full left-0 mt-2 w-full bg-slate-800 text-white p-4 rounded-xl shadow-xl z-20 text-sm animate-in fade-in slide-in-from-top-2 border-2 border-slate-700">
-              <p className="font-bold text-orange-400 mb-2 border-b border-slate-600 pb-1">Mifflin-St Jeor 公式</p>
-              <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-                指人體在安靜狀態下，維持生命運作所需的最低熱量。
-              </p>
-              {!bmr && (
-                <div className="bg-red-500/20 text-red-300 p-2 rounded-lg text-xs border border-red-500/30">
-                  ⚠️ 請至「設定」完善您的性別、年齡、身高與體重以解鎖計算。
+            <div className="p-6 overflow-y-auto space-y-6">
+
+              {/* === 分頁 1: 營養分析結果 === */}
+              {activeModalTab === 'analysis' && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <div className="bg-emerald-600 text-white px-5 py-2 rounded-2xl border-4 border-emerald-500">
+                      <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Health Score</p>
+                      <p className="text-3xl font-black">{selectedRecord.ai_health_score}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-slate-400 mb-1">辨識時間</p>
+                      <p className="text-xs font-black text-slate-700 bg-slate-100 px-2 py-1 rounded-md border-2 border-slate-200">
+                        {safeParseDate(selectedRecord.created_at || selectedRecord.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-[32px] border-4 border-slate-100">
+                    <h4 className="text-center font-black text-slate-800 mb-2">營養密度雷達圖</h4>
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="75%" data={getRadarData(selectedRecord)}>
+                          <PolarGrid stroke="#cbd5e1" strokeWidth={2} />
+                          <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fontWeight: 800, fill: '#64748b' }} />
+                          <Radar name="餐點比例" dataKey="A" stroke="#10b981" strokeWidth={4} fill="#10b981" fillOpacity={0.4} />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 p-6 rounded-[32px] border-4 border-emerald-100">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles size={18} className="text-emerald-600" />
+                      <span className="font-black text-emerald-800">AI 營養師建議</span>
+                    </div>
+                    <p className="text-sm font-bold text-emerald-900 leading-relaxed italic">
+                      "{selectedRecord.ai_evaluation}"
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pb-2">
+                    <div className="bg-slate-50 p-4 rounded-3xl border-4 border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 mb-1">預估總熱量</p>
+                      <p className="text-lg font-black text-slate-800">
+                        {Number(selectedRecord.total_calories || 0).toFixed(0)} kcal
+                      </p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-3xl border-4 border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 mb-1">分析狀態</p>
+                      <p className="text-lg font-black text-emerald-600 flex items-center gap-1"><CheckCircle2 size={16} strokeWidth={3} /> 成功</p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* === 分頁 2: 圖片顯示 === */}
+              {activeModalTab === 'image' && (
+                <div className="flex flex-col items-center justify-center min-h-[300px] bg-slate-50 rounded-[32px] border-4 border-slate-100 p-4">
+                  {imageFetchStatus === 'loading' && (
+                    <div className="flex flex-col items-center text-emerald-500">
+                      <Activity size={40} className="animate-spin mb-2" />
+                      <p className="font-black text-sm">正在載入分析照片...</p>
+                    </div>
+                  )}
+                  {imageFetchStatus === 'error' && (
+                    <div className="flex flex-col items-center text-rose-500">
+                      <AlertTriangle size={48} className="mb-3 opacity-50" />
+                      <p className="font-black text-sm text-slate-500">無法載入，圖片可能已遺失</p>
+                    </div>
+                  )}
+                  {imageFetchStatus === 'success' && recordImageBase64 && (
+                    <img
+                      src={`data:image/jpeg;base64,${recordImageBase64}`}
+                      alt="Diet Record Analysis"
+                      className="w-full h-auto rounded-2xl border-4 border-emerald-100 object-contain max-h-[50vh]"
+                    />
+                  )}
                 </div>
               )}
-              {bmr && (
-                <div className="bg-slate-900 p-2 rounded-lg text-xs font-mono break-all text-slate-300">
-                  {gender === 'Male' ? `(10×${weight})+(6.25×${user.height})-(5×${age})+5` : `(10×${weight})+(6.25×${user.height})-(5×${age})-161`}
-                </div>
-              )}
+
             </div>
-          )}
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow-sm border-2 border-slate-200">
-          <div className="bg-slate-100 p-2.5 rounded-xl text-slate-600 w-fit mb-2"><Server size={22} /></div>
-          <p className="text-sm text-slate-500 font-bold mb-1">後端 API 伺服器</p>
-          <div className="text-lg font-bold text-slate-800 flex items-center mt-1">
-            {health?.status === 'ok' ? (
-              <span className="text-emerald-600 flex items-center bg-emerald-50 border-2 border-emerald-100 px-3 py-1 rounded-lg text-sm shadow-sm">
-                <CheckCircle2 size={16} className="mr-1.5 stroke-[2.5px]" /> 正常連線中
-              </span>
-            ) : (
-              <span className="text-amber-600 text-sm bg-amber-50 border-2 border-amber-100 px-3 py-1 rounded-lg shadow-sm">連線檢查中...</span>
-            )}
           </div>
         </div>
+      )}
 
+      {/* --- 歡迎區塊 --- */}
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 rounded-[32px] sm:rounded-[40px] p-8 sm:p-12 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 opacity-20">
+          <Activity size={200} />
+        </div>
+        <div className="relative z-10">
+          <h1 className="text-3xl sm:text-4xl font-black mb-2">歡迎回來，{user?.nickname || '使用者'}！</h1>
+          <p className="text-emerald-50 font-bold text-sm sm:text-base max-w-md">
+            今日的 AI 營養分析已經準備就緒，持續追蹤飲食紀錄以獲得更準確的健康建議。
+          </p>
+        </div>
       </div>
 
-      {dietRecords.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-slate-200">
-            <h2 className="text-lg font-extrabold text-slate-800 mb-6 flex items-center">
-              <TrendingUp className="mr-2 text-indigo-500 stroke-[2.5px]" /> AI 健康分數趨勢
-            </h2>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} tickMargin={10} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
-                  <Tooltip contentStyle={{ borderRadius: '12px', border: '2px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }} />
-                  <Line type="monotone" dataKey="score" name="健康分數" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+      {/* --- 身體數據與流量狀態儀表板 --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        {/* 1. BMI 卡片 */}
+        <div className="bg-white p-6 rounded-[32px] border-4 border-emerald-400 flex flex-col justify-center relative overflow-hidden group cursor-pointer" tabIndex="0">
+          <div className="relative z-10 transition-all duration-300 group-hover:opacity-0 group-hover:-translate-y-4">
+            <h3 className="text-sm font-black text-slate-400 mb-1 flex items-center gap-2">
+              <Scale size={16} className="text-emerald-500" /> BMI 身體質量指數
+            </h3>
+            <div className="flex items-end gap-3 mb-2">
+              <span className="text-4xl font-black text-slate-800">{bmi > 0 ? bmi : '--'}</span>
+              {bmi > 0 && <span className={`text-xs font-bold px-2 py-1 rounded-md mb-1 ${bmiStatus.bg} ${bmiStatus.color}`}>{bmiStatus.label}</span>}
+            </div>
+            <p className="text-xs font-bold text-slate-400">根據您設定的身高 {height}cm 體重 {weight}kg</p>
+          </div>
+          <Scale size={80} className="absolute -right-4 -bottom-4 text-emerald-50 transition-transform duration-500 group-hover:scale-150 group-hover:-rotate-12" />
+
+          <div className="absolute inset-0 bg-emerald-500 p-6 flex flex-col justify-center opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 transition-all duration-300 z-20 translate-y-8 group-hover:translate-y-0">
+            <h4 className="text-sm font-black text-emerald-100 mb-2 flex items-center gap-2">
+              <Scale size={16} /> 計算公式與分析
+            </h4>
+            <div className="space-y-1.5 text-[11px] font-bold text-emerald-50">
+              <p>公式: 體重(kg) / 身高(m)²</p>
+              <p>帶入: {weight} / ({heightInMeters} × {heightInMeters})</p>
+              <div className="h-px w-full bg-emerald-400/50 my-1"></div>
+              <p className="text-sm">結果: <span className="text-white text-lg font-black">{bmi}</span> ({bmiStatus.label})</p>
+              <p className="text-[10px] text-emerald-200 mt-1 leading-relaxed">
+                {bmi < 18.5 ? '建議增加優質蛋白質與碳水化合物的攝取。' : bmi >= 24 ? '建議搭配適度有氧運動與飲食控制。' : '請繼續保持良好的飲食與運動習慣！'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. BMR 卡片 */}
+        <div className="bg-white p-6 rounded-[32px] border-4 border-emerald-400 flex flex-col justify-center relative overflow-hidden group cursor-pointer" tabIndex="0">
+          <div className="relative z-10 transition-all duration-300 group-hover:opacity-0 group-hover:-translate-y-4">
+            <h3 className="text-sm font-black text-slate-400 mb-1 flex items-center gap-2">
+              <Flame size={16} className="text-emerald-500" /> BMR 基礎代謝率
+            </h3>
+            <div className="flex items-end gap-2 mb-2">
+              <span className="text-4xl font-black text-slate-800">{bmr > 0 ? bmr : '--'}</span>
+              <span className="text-sm font-bold text-slate-400 mb-1.5">kcal/天</span>
+            </div>
+            <p className="text-xs font-bold text-slate-400">維持生命所需的最低熱量</p>
+          </div>
+          <Flame size={80} className="absolute -right-4 -bottom-4 text-emerald-50 transition-transform duration-500 group-hover:scale-150 group-hover:rotate-12" />
+
+          <div className="absolute inset-0 bg-emerald-500 p-6 flex flex-col justify-center opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 transition-all duration-300 z-20 translate-y-8 group-hover:translate-y-0">
+            <h4 className="text-sm font-black text-emerald-100 mb-2 flex items-center gap-2">
+              <Flame size={16} /> 公式 (Mifflin-St Jeor)
+            </h4>
+            <div className="space-y-1 text-[11px] font-bold text-emerald-50">
+              <p>參數: 10W + 6.25H - 5A {gender === 'male' || gender === '男' ? '+ 5' : '- 161'}</p>
+              <p className="tracking-tighter">帶入: 10×{weight} + 6.25×{height} - 5×{age} {gender === 'male' || gender === '男' ? '+ 5' : '- 161'}</p>
+              <div className="h-px w-full bg-emerald-400/50 my-1"></div>
+              <p className="text-sm">結果: <span className="text-white text-lg font-black">{bmr}</span> kcal/天</p>
+              <p className="text-[10px] text-emerald-200 mt-1 leading-relaxed">
+                此數值為每日基本消耗，建議總熱量攝取以此為基準進行規劃。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. 系統狀態卡片 */}
+        <div className="bg-slate-900 p-6 rounded-[32px] border-4 border-emerald-500 flex flex-col justify-center relative overflow-hidden">
+          <div className="relative z-10 flex flex-col h-full">
+            <h3 className="text-sm font-black text-slate-400 mb-1 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Users size={16} className="text-emerald-400" /> 網站造訪人數
+              </span>
+              <div className="bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></div>
+                Live 紀錄中
+              </div>
+            </h3>
+
+            <div className="flex items-end gap-2 mb-2">
+              <span className="text-4xl font-black text-white">{todayVisit}</span>
+              <span className="text-sm font-bold text-slate-400 mb-1.5">人次 / 今日</span>
+            </div>
+
+            <div className="w-full h-16 min-h-[64px] shrink-0 mt-auto">
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <LineChart data={visitStats}>
+                  <RechartsTooltip
+                    contentStyle={{ backgroundColor: '#0f172a', border: '2px solid #10b981', borderRadius: '8px', color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+                    itemStyle={{ color: '#34d399' }}
+                    labelStyle={{ display: 'none' }}
+                    formatter={(value) => [`${value} 人次`, '造訪']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="visit_count"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ r: 3, fill: '#0f172a', stroke: '#10b981', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: '#10b981', strokeWidth: 0 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="bg-white p-6 rounded-3xl shadow-sm border-2 border-slate-200">
-            <h2 className="text-lg font-extrabold text-slate-800 mb-6 flex items-center justify-between">
-              <div className="flex items-center">
-                <PieChart className="mr-2 text-emerald-500 stroke-[2.5px]" /> 最新一餐營養結構
-              </div>
-              <span className="text-xs font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md shadow-sm">
-                總熱量 {latestMeal?.total_calories?.toFixed(0)} kcal
-              </span>
+      {/* --- 圖表區 --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white p-6 sm:p-8 rounded-[32px] border-4 border-slate-100 flex flex-col justify-center relative overflow-hidden group">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+              <TrendingUp className="text-emerald-500" /> AI 評分趨勢
             </h2>
-            <div className="h-64 w-full">
+          </div>
+
+          {loading ? (
+            <div className="h-64 flex items-center justify-center text-slate-400 font-bold">載入數據中...</div>
+          ) : trendData.length > 0 ? (
+            <div className="h-64 sm:h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={nutritionData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
-                  <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12, fill: '#475569', fontWeight: 700 }} />
-                  <Tooltip
-                    cursor={{ fill: '#f8fafc' }}
-                    contentStyle={{ borderRadius: '12px', border: '2px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }}
-                    formatter={(value) => [`${value.toFixed(1)} kcal`, '熱量']}
-                  />
-                  <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={20}>
-                    {nutritionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                  <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', shadow: 'none', fontWeight: 'bold' }} itemStyle={{ color: '#10b981', fontWeight: 900 }} />
+                  <Line type="monotone" dataKey="score" name="健康評分" stroke="#10b981" strokeWidth={4} dot={{ fill: '#10b981', strokeWidth: 2, r: 4, stroke: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                </LineChart>
               </ResponsiveContainer>
             </div>
+          ) : (
+            <div className="h-64 flex flex-col items-center justify-center text-slate-400">
+              <Calendar size={48} className="mb-4 opacity-20" />
+              <p className="font-bold">目前還沒有足夠的數據畫出趨勢圖</p>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white p-6 sm:p-8 rounded-[32px] border-4 border-slate-100 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+              <PieChartIcon className="text-emerald-500" /> 最新一餐結構
+            </h2>
           </div>
-        </div>
-      )}
 
-      <div className="bg-white rounded-3xl shadow-sm border-2 border-slate-200 overflow-hidden">
-        <div className="p-6 border-b-2 border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h2 className="text-lg font-extrabold text-slate-800 flex items-center">
-            <History className="mr-2 text-slate-600 stroke-[2.5px]" /> 近期飲食紀錄
-          </h2>
-          <Link to="/diet" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl transition-colors shadow-sm">
-            + 新增紀錄
-          </Link>
-        </div>
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center text-slate-400 font-bold">載入中...</div>
+          ) : latestMeal && nutritionData.length > 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <p className="text-xs font-bold text-slate-400 mb-2">
+                總熱量: <span className="text-emerald-600 font-black">{Number(latestMeal.total_calories || 0).toFixed(0)} kcal</span>
+              </p>
 
-        <div className="divide-y-2 divide-slate-100">
-          {recentRecords.length > 0 ? recentRecords.map((record, idx) => (
-            <div
-              key={record.id || idx}
-              onClick={() => setSelectedRecord(record)}
-              className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors group"
-            >
-              <div className="flex items-center gap-4 mb-3 sm:mb-0">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-sm border-2 ${record.ai_health_score >= 80 ? 'bg-emerald-50 text-emerald-600 border-emerald-200' :
-                  record.ai_health_score >= 60 ? 'bg-amber-50 text-amber-600 border-amber-200' :
-                    'bg-red-50 text-red-600 border-red-200'
-                  }`}>
-                  {record.ai_health_score}
+              <div className="h-56 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={nutritionData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none" animationDuration={1000}>
+                      {nutritionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip formatter={(value) => [`${value.toFixed(0)} kcal`, '熱量']} contentStyle={{ borderRadius: '12px', border: 'none', shadow: 'none', fontWeight: 'bold', fontSize: '12px' }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-6">
+                  <span className="text-2xl font-black text-slate-800">{latestMeal.ai_health_score}</span>
+                  <span className="text-[9px] font-bold text-slate-400">SCORE</span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Calendar size={16} className="text-slate-400 stroke-[2.5px]" />
-                    <span className="text-sm font-bold text-slate-700">
-                      {formatDate(record.created_at || record.createdAt)}
-                    </span>
-                  </div>
-                  <div className="text-xs font-bold text-slate-500 flex gap-3">
-                    <span>總熱量: <strong className="text-slate-800">{record.total_calories?.toFixed(0)}</strong> kcal</span>
-                    {record.ai_health_score < 60 && (
-                      <span className="text-red-500 flex items-center"><AlertTriangle size={14} className="mr-1 stroke-[2.5px]" /> 需注意</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="text-sm text-slate-500 bg-white border-2 border-slate-200 px-5 py-2.5 rounded-xl group-hover:border-indigo-400 group-hover:text-indigo-700 group-hover:bg-indigo-50 transition-all w-full sm:w-auto text-center font-bold shadow-sm">
-                查看分析
               </div>
             </div>
-          )) : (
-            <div className="p-12 text-center text-slate-500">
-              <Camera size={48} className="mx-auto mb-4 text-slate-300 stroke-[1.5px]" />
-              <p className="font-bold">目前還沒有飲食紀錄，快去拍張照片吧！</p>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400">
+              <Flame size={48} className="mb-4 opacity-20" />
+              <p className="font-bold text-sm">尚無今日營養數據</p>
             </div>
           )}
         </div>
       </div>
 
-      {selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedRecord(null)}>
-          <div
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 border-4 border-white"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={`p-6 sm:p-8 text-white flex justify-between items-start ${selectedRecord.ai_health_score >= 80 ? 'bg-emerald-500' :
-              selectedRecord.ai_health_score >= 60 ? 'bg-amber-500' : 'bg-red-500'
-              }`}>
-              <div>
-                <span className="bg-white/20 border border-white/30 px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-sm">
-                  {formatDate(selectedRecord.created_at || selectedRecord.createdAt)}
-                </span>
-                <h3 className="text-3xl font-black mt-4 flex items-center gap-2 drop-shadow-md">
-                  健康評分: {selectedRecord.ai_health_score}
-                </h3>
-              </div>
-              <button onClick={() => setSelectedRecord(null)} className="p-2 bg-white/20 hover:bg-white/40 rounded-full transition-colors backdrop-blur-md shadow-sm">
-                <X size={24} className="stroke-[2.5px]" />
-              </button>
-            </div>
-
-            <div className="p-6 sm:p-8 space-y-6 max-h-[70vh] overflow-y-auto">
-              <div className="flex justify-between items-center p-5 bg-slate-50 rounded-2xl border-2 border-slate-200 shadow-sm">
-                <span className="text-slate-600 font-extrabold text-base">預估總熱量</span>
-                <span className="text-3xl font-black text-slate-800">{selectedRecord.total_calories?.toFixed(1)} <span className="text-sm font-bold text-slate-400">kcal</span></span>
-              </div>
-
-              <div>
-                <h4 className="text-base font-extrabold text-slate-800 mb-4 flex items-center">
-                  <PieChart size={18} className="mr-2 text-indigo-500 stroke-[2.5px]" /> 營養來源拆解
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {selectedRecord.grain_calories > 0 && <div className="p-4 bg-yellow-50 rounded-2xl border-2 border-yellow-200 text-yellow-800"><p className="text-xs font-bold opacity-70 mb-1">穀物</p><p className="font-black text-lg">{selectedRecord.grain_calories.toFixed(0)} kcal</p></div>}
-                  {selectedRecord.protein_meat_calories > 0 && <div className="p-4 bg-red-50 rounded-2xl border-2 border-red-200 text-red-800"><p className="text-xs font-bold opacity-70 mb-1">肉類蛋白</p><p className="font-black text-lg">{selectedRecord.protein_meat_calories.toFixed(0)} kcal</p></div>}
-                  {selectedRecord.protein_bean_calories > 0 && <div className="p-4 bg-emerald-50 rounded-2xl border-2 border-emerald-200 text-emerald-800"><p className="text-xs font-bold opacity-70 mb-1">植物蛋白</p><p className="font-black text-lg">{selectedRecord.protein_bean_calories.toFixed(0)} kcal</p></div>}
-                  {selectedRecord.vegetable_calories > 0 && <div className="p-4 bg-green-50 rounded-2xl border-2 border-green-200 text-green-800"><p className="text-xs font-bold opacity-70 mb-1">蔬菜</p><p className="font-black text-lg">{selectedRecord.vegetable_calories.toFixed(0)} kcal</p></div>}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-base font-extrabold text-slate-800 mb-4 flex items-center">
-                  <Sparkles size={18} className="mr-2 text-amber-500 stroke-[2.5px]" /> AI 專屬點評
-                </h4>
-                <div className="p-5 bg-indigo-50 rounded-2xl border-2 border-indigo-200 text-indigo-900 text-sm md:text-base leading-relaxed font-bold shadow-sm">
-                  {selectedRecord.ai_evaluation || "暫無評價資料。"}
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="bg-white p-6 sm:p-8 rounded-[32px] border-4 border-slate-100">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+            <Clock className="text-emerald-500" /> 近期歷史紀錄
+          </h2>
         </div>
-      )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-10 text-slate-400 font-bold">載入紀錄中...</div>
+        ) : dietRecords.length > 0 ? (
+          <div className="space-y-4">
+            {[...dietRecords].reverse().slice(0, 5).map((record, index) => {
+              const d = safeParseDate(record.created_at || record.createdAt);
+              const formattedDate = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+              return (
+                <div
+                  key={record.id || index}
+                  onClick={() => setSelectedRecord(record)}
+                  className="bg-slate-50 p-5 rounded-2xl border-4 border-slate-200 hover:border-emerald-400 hover:bg-white hover:border-b-4 hover:translate-y-1 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center border-4 transition-transform group-hover:scale-110 ${record.ai_health_score >= 80 ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : record.ai_health_score >= 60 ? 'bg-amber-100 border-amber-200 text-amber-700' : 'bg-rose-100 border-rose-200 text-rose-700'}`}>
+                      <span className="text-[10px] font-black uppercase opacity-60 leading-none">Score</span>
+                      <span className="text-lg font-black leading-none mt-1">{record.ai_health_score}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-slate-800 mb-1 group-hover:text-emerald-600 transition-colors">YOLO 飲食辨識</p>
+                      <p className="text-xs font-bold text-slate-400">{formattedDate}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:items-end w-full sm:w-auto">
+                    <div className="text-sm font-black text-slate-700 bg-white px-3 py-1.5 rounded-lg border-2 border-slate-300 w-fit mb-2 group-hover:border-emerald-400 transition-colors">
+                      總熱量: <span className="text-emerald-600">{Number(record.total_calories || 0).toFixed(0)}</span> kcal
+                    </div>
+                    <p className="text-xs font-bold text-slate-500 line-clamp-1 max-w-sm sm:text-right">
+                      "{record.ai_evaluation}"
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+            <Database size={48} className="mb-4 opacity-20" />
+            <p className="font-bold">尚無歷史紀錄，請至相機頁面進行分析</p>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 };

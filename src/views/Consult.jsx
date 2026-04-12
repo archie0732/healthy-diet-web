@@ -189,7 +189,7 @@ const Consult = ({ user, apiFetch, showNotification, fetchProfile }) => {
       </div>
 
       {/* --- 輸入區域 --- */}
-      <div className="p-3 sm:p-6 bg-white border-t-2 border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] relative z-30 shrink-0 pb-[max(env(safe-area-inset-bottom),12px)] sm:pb-6">
+      <div className="p-3 sm:p-6 bg-white border-t-2 border-slate-100 shadow-[0_-8px_30px_rgb(0,0,0,0.06)] relative z-30 shrink-0 pb-4 sm:pb-6">
         <form onSubmit={handleAsk} className="flex space-x-2 sm:space-x-3 max-w-5xl mx-auto">
           <div className="relative flex-1 group">
             <input
