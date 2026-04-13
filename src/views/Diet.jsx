@@ -366,7 +366,7 @@ const Diet = ({ apiFetch, showNotification }) => {
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border-2 border-emerald-100 relative z-10">
                   <div className="flex items-center gap-2 mb-2 text-emerald-700 font-black text-sm"><Sparkles size={16} /> AI 營養師建議</div>
-                  <p className="text-emerald-900 font-bold leading-relaxed italic text-sm">"{result.ai_evaluation}"</p>
+                  <p className="text-emerald-900 font-bold leading-relaxed italic text-sm">"{result.ai_comment}"</p>
                 </div>
               </div>
             </div>
@@ -403,7 +403,7 @@ const Diet = ({ apiFetch, showNotification }) => {
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-[10px] font-black text-slate-400">{rec.created_at?.split('.')[0]}</span>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200">Score: {rec.ai_health_score}</span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200">Score: {rec.ai_score}</span>
                 </div>
                 <p className="text-sm font-black text-slate-700 truncate">熱量: {rec.total_calories?.toFixed(0)} kcal</p>
               </div>
