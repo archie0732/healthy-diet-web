@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   User, BookOpen, Weight, Ruler, Calendar,
   Dna, ShieldAlert, Ban, LogOut, CheckCircle2,
-  Droplets, Dumbbell, TrendingDown, AlertTriangle
+  Droplets, Dumbbell, TrendingDown, AlertTriangle, Star, MessageSquare, Send, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
@@ -18,17 +18,18 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
     taboo: user?.taboo ? user.taboo.join('、') : ''
   });
 
-  // 判斷是否為測試帳號
-  const isTestAccount = user?.email === 'ckck@gmail.com';
+  // --- 評分與意見用的 State ---
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [feedback, setFeedback] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
-  // 模擬健康進度數據
+  const isTestAccount = user?.email === 'ckck@gmail.com';
   const waterProgress = 65;
   const exerciseProgress = 3;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // 雙重防護：送出時再次阻擋測試帳號
     if (isTestAccount) {
       showNotification('測試帳號無法修改個人資料！', 'error');
       return;
@@ -53,30 +54,47 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
     }
   };
 
-  // --- BMI 圓環圖數據與動態對話 ---
+  // --- 處理意見回報提交 ---
+  const handleFeedbackSubmit = async () => {
+    if (rating === 0) {
+      showNotification('請先選擇星級評分', 'error');
+      return;
+    }
+    setIsSubmittingFeedback(true);
+    try {
+      // 假設 API 路徑為 /feedback
+      await apiFetch('/feedback', {
+        method: 'POST',
+        body: JSON.stringify({ rating, comment: feedback })
+      });
+      showNotification('感謝您的回饋！');
+      setRating(0);
+      setFeedback('');
+    } catch (err) {
+      showNotification('暫時無法送出回饋，請稍後再試', 'error');
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
   const heightM = user?.height / 100;
   const bmi = heightM && user?.weight ? (user?.weight / (heightM * heightM)).toFixed(1) : 0;
   const bmiPieData = [{ value: parseFloat(bmi) }, { value: Math.max(0, 40 - parseFloat(bmi)) }];
 
   let bmiMessage = "請先補全身高與體重數據，以解鎖您的專屬 BMI 分析。";
-  const bmiValue = parseFloat(bmi);
-  if (bmiValue > 0) {
-    if (bmiValue < 18.5) {
-      bmiMessage = "您的體重過輕，建議增加優質蛋白質與碳水化合物的攝取。";
-    } else if (bmiValue >= 18.5 && bmiValue < 24) {
-      bmiMessage = "您的體重處於健康標準區間，請繼續保持目前的飲食與運動規律！";
-    } else if (bmiValue >= 24 && bmiValue < 27) {
-      bmiMessage = "您的體重稍微過重，建議搭配適度有氧運動與飲食控制。";
-    } else {
-      bmiMessage = "您的體重處於肥胖區間，請多加注意飲食管理，必要時尋求專業協助。";
-    }
+  if (parseFloat(bmi) > 0) {
+    const bmiValue = parseFloat(bmi);
+    if (bmiValue < 18.5) bmiMessage = "您的體重過輕，建議增加優質蛋白質與碳水化合物的攝取。";
+    else if (bmiValue >= 18.5 && bmiValue < 24) bmiMessage = "您的體重處於健康標準區間，請繼續保持目前的飲食與運動規律！";
+    else if (bmiValue >= 24 && bmiValue < 27) bmiMessage = "您的體重稍微過重，建議搭配適度有氧運動與飲食控制。";
+    else bmiMessage = "您的體重處於肥胖區間，請多加注意飲食管理，必要時尋求專業協助。";
   }
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
 
+      {/* --- 身體質量狀態與進度 --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         <div className="bg-white p-6 rounded-[32px] border-2 border-slate-200 shadow-sm flex flex-col items-center">
           <h3 className="font-black text-slate-800 mb-2 flex items-center gap-2">
             <TrendingDown size={18} className="text-indigo-500" /> 身體質量狀態
@@ -84,17 +102,7 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
           <div className="h-40 w-40 relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={bmiPieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={65}
-                  startAngle={180}
-                  endAngle={0}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
+                <Pie data={bmiPieData} cx="50%" cy="50%" innerRadius={50} outerRadius={65} startAngle={180} endAngle={0} paddingAngle={5} dataKey="value">
                   <Cell fill="#6366f1" />
                   <Cell fill="#f1f5f9" />
                 </Pie>
@@ -105,21 +113,15 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
               <span className="text-[10px] font-bold text-slate-400">BMI SCORE</span>
             </div>
           </div>
-          <p className="text-xs font-bold text-slate-500 text-center px-4 leading-relaxed">
-            {bmiMessage}
-          </p>
+          <p className="text-xs font-bold text-slate-500 text-center px-4 leading-relaxed">{bmiMessage}</p>
         </div>
 
         <div className="lg:col-span-2 bg-white p-6 rounded-[32px] border-2 border-slate-200 shadow-sm flex flex-col justify-center space-y-6">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="font-black text-slate-700 flex items-center gap-2">
-                  <Droplets className="text-blue-500" size={20} /> 每日飲水進度
-                </span>
-                <span className="text-[10px] leading-none bg-blue-100 text-blue-600 px-2 py-1 rounded-full border border-blue-200 font-bold">
-                  Beta
-                </span>
+                <span className="font-black text-slate-700 flex items-center gap-2"><Droplets className="text-blue-500" size={20} /> 每日飲水進度</span>
+                <span className="text-[10px] leading-none bg-blue-100 text-blue-600 px-2 py-1 rounded-full border border-blue-200 font-bold">Beta</span>
               </div>
               <span className="font-bold text-blue-600">{waterProgress}%</span>
             </div>
@@ -131,12 +133,8 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="font-black text-slate-700 flex items-center gap-2">
-                  <Dumbbell className="text-emerald-500" size={20} /> 本週運動達標
-                </span>
-                <span className="text-[10px] leading-none bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full border border-emerald-200 font-bold">
-                  Beta
-                </span>
+                <span className="font-black text-slate-700 flex items-center gap-2"><Dumbbell className="text-emerald-500" size={20} /> 本週運動達標</span>
+                <span className="text-[10px] leading-none bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full border border-emerald-200 font-bold">Beta</span>
               </div>
               <span className="font-bold text-emerald-600">{exerciseProgress} / 5 天</span>
             </div>
@@ -149,8 +147,8 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
         </div>
       </div>
 
+      {/* --- 主要資料表單 --- */}
       <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-10 rounded-[40px] border-2 border-slate-200 shadow-sm space-y-8">
-
         {isTestAccount && (
           <div className="bg-rose-50 border-2 border-rose-200 p-4 rounded-2xl flex items-center gap-3 text-rose-700 mb-2">
             <AlertTriangle className="shrink-0" size={20} />
@@ -169,7 +167,7 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
           <button
             type="submit"
             disabled={isTestAccount}
-            className="hidden sm:flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:border-b-4 disabled:active:translate-y-0"
+            className="hidden sm:flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CheckCircle2 size={20} /> 儲存設定
           </button>
@@ -204,7 +202,7 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
               onChange={e => setFormData({ ...formData, disease: e.target.value })}
               disabled={isTestAccount}
               rows="3"
-              className="w-full px-5 py-4 border-2 border-slate-100 rounded-[32px] bg-slate-50 focus:bg-white focus:border-indigo-500 outline-none font-bold transition-all resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-5 py-4 border-2 border-slate-100 rounded-[32px] bg-slate-50 focus:bg-white focus:border-indigo-500 outline-none font-bold transition-all resize-none disabled:opacity-60"
               placeholder="例如：高血壓、糖尿病..."
             />
           </div>
@@ -215,27 +213,82 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
               onChange={e => setFormData({ ...formData, taboo: e.target.value })}
               disabled={isTestAccount}
               rows="3"
-              className="w-full px-5 py-4 border-2 border-slate-100 rounded-[32px] bg-slate-50 focus:bg-white focus:border-indigo-500 outline-none font-bold transition-all resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-5 py-4 border-2 border-slate-100 rounded-[32px] bg-slate-50 focus:bg-white focus:border-indigo-500 outline-none font-bold transition-all resize-none disabled:opacity-60"
               placeholder="例如：花生過敏、全素..."
             />
           </div>
         </div>
-
-        <button
-          type="submit"
-          disabled={isTestAccount}
-          className="sm:hidden w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          儲存變更
-        </button>
       </form>
+
+      {/* --- 新增：評分與意見回報區塊 --- */}
+      <div className="bg-white p-6 sm:p-10 rounded-[40px] border-2 border-slate-200 shadow-sm space-y-6">
+        <div className="flex items-center gap-4 border-b-2 border-slate-50 pb-6">
+          <div className="bg-emerald-100 p-3 rounded-2xl text-emerald-600 border-2 border-emerald-200"><MessageSquare size={24} /></div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black text-slate-800">意見回報與評分</h2>
+              <span className="px-2 py-0.5 bg-amber-400 text-amber-950 text-[10px] font-black rounded-lg border-2 border-amber-600 shadow-[2px_2px_0px_rgba(0,0,0,1)]">BETA</span>
+            </div>
+            <p className="text-slate-500 text-sm font-bold">您的反饋是我們前進的動力</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center py-4 space-y-6">
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-sm font-black text-slate-400 uppercase">點擊星等進行評分</p>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => setRating(star)}
+                  className="transition-transform active:scale-90"
+                >
+                  <Star
+                    size={40}
+                    className={`transition-colors duration-200 ${star <= (hoverRating || rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-transparent'
+                      }`}
+                    strokeWidth={2.5}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase ml-2 flex items-center gap-1"><Sparkles size={14} /> 具體建議或心得</label>
+              <textarea
+                value={feedback}
+                onChange={e => setFeedback(e.target.value)}
+                rows="4"
+                className="w-full px-6 py-5 border-2 border-slate-100 rounded-[32px] bg-slate-50 focus:bg-white focus:border-emerald-500 outline-none font-bold transition-all resize-none shadow-inner"
+                placeholder="在這裡寫下您對本系統的任何建議..."
+              />
+            </div>
+
+            <button
+              onClick={handleFeedbackSubmit}
+              disabled={isSubmittingFeedback || rating === 0}
+              className="w-full flex items-center justify-center gap-3 bg-emerald-600 text-white py-4 rounded-[24px] font-black hover:bg-emerald-700 transition-all shadow-lg border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:border-b-4 disabled:active:translate-y-0"
+            >
+              {isSubmittingFeedback ? (
+                <Activity size={20} className="animate-spin" />
+              ) : (
+                <Send size={20} />
+              )}
+              送出回饋意見
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between px-6">
         <Link to="/privacy" className="text-sm font-bold text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-2">
           <BookOpen size={16} /> 瀏覽隱私政策
         </Link>
-
-        {/* 🌟 恢復成最原本單純的 onClick={handleLogout} */}
         <button
           type="button"
           onClick={handleLogout}
