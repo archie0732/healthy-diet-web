@@ -154,7 +154,7 @@ const Dashboard = ({ user, apiFetch }) => {
         <p className="text-emerald-50 font-bold max-w-md italic">讓我們一起守護您的每一餐，吃得更健康。</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
         {/* BMI 卡片 - 更新 Hover 內容 */}
         <div id="guide-bmi" className={`group bg-white p-6 rounded-[32px] border-4 border-emerald-400 flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer ${guideStep === 0 ? 'z-[310] ring-[12px] ring-emerald-500/30 scale-105 shadow-2xl' : ''}`}>
           <div className="relative z-10 transition-all duration-300 group-hover:opacity-0 group-hover:-translate-y-4">
@@ -205,17 +205,6 @@ const Dashboard = ({ user, apiFetch }) => {
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-[32px] border-4 border-slate-100 flex flex-col justify-center overflow-hidden shadow-sm relative">
-          <video
-            src="/a.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-          />
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -223,7 +212,8 @@ const Dashboard = ({ user, apiFetch }) => {
           <h2 className="text-xl font-black text-slate-800 flex items-center gap-2 mb-6"><TrendingUp className="text-emerald-500" /> AI 評分趨勢</h2>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={[...dietRecords].map(r => ({ date: safeParseDate(r.created_at).toLocaleDateString(), score: r.ai_health_score }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              {/* 🔽 這裡！把原本的 bottom: 0 改成了 bottom: 20 */}
+              <LineChart data={[...dietRecords].map(r => ({ date: safeParseDate(r.created_at).toLocaleDateString(), score: r.ai_health_score }))} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="date" hide />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />

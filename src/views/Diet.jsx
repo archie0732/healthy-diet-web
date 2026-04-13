@@ -256,7 +256,7 @@ const Diet = ({ apiFetch, showNotification }) => {
         )}
       </div>
 
-      {/* 🔽 新增：補充細節輸入框 */}
+      {/* 補充細節輸入框 */}
       {activeTab === 'analysis' && (
         <form onSubmit={handleComplementSubmit} className="mt-auto pt-4 border-t-4 border-slate-100">
           <div className="relative flex items-center gap-2">
@@ -282,6 +282,26 @@ const Diet = ({ apiFetch, showNotification }) => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-24" onClick={() => setReportingId(null)}>
+
+      {/* 🔽 修改：分析中的全螢幕遮罩 (替換為影片) */}
+      {isAnalyzing && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white p-8 rounded-[32px] shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 border-4 border-emerald-100 animate-in zoom-in-95">
+            <h3 className="text-xl font-black text-slate-800 mb-6 tracking-wide">辨識中請稍後</h3>
+            <div className="relative w-48 h-48 rounded-2xl overflow-hidden border-4 border-slate-100 shadow-inner bg-slate-50">
+              <video
+                src="/public/a.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- 上部：辨識區 --- */}
       <div className="bg-white p-6 sm:p-10 rounded-[40px] shadow-sm border-2 border-slate-100 transition-all">
         <div className="flex items-center mb-8 border-b-2 border-slate-50 pb-6">
@@ -332,12 +352,12 @@ const Diet = ({ apiFetch, showNotification }) => {
 
           {result && (
             <div className="space-y-4 animate-in slide-in-from-top-4 duration-500">
-              <div className="bg-emerald-50 rounded-[32px] p-6 border-4 border-emerald-200 relative overflow-hidden">
+              <div className="bg-emerald-50 rounded-[32px] p-6 border-4 border-emerald-200 relative">
                 <div className="flex justify-between items-start mb-4 relative z-10">
                   <div className="flex gap-4 items-center">
                     <div className="bg-emerald-600 text-white px-5 py-2 rounded-2xl border-4 border-emerald-500 shadow-md">
                       <p className="text-[10px] font-black opacity-80 uppercase">AI Score</p>
-                      <p className="text-3xl font-black">{result.ai_health_score || '--'}</p>
+                      <p className="text-3xl font-black">{result.ai_score || '--'}</p>
                     </div>
                     <div>
                       <h3 className="font-black text-emerald-800 text-lg flex items-center gap-2">辨識成功 <CheckCircle2 size={18} /></h3>
