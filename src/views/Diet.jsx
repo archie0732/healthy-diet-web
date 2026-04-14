@@ -290,7 +290,7 @@ const Diet = ({ apiFetch, showNotification }) => {
             <h3 className="text-xl font-black text-slate-800 mb-6 tracking-wide">辨識中請稍後</h3>
             <div className="relative w-48 h-48 rounded-2xl overflow-hidden border-4 border-slate-100 shadow-inner bg-slate-50">
               <video
-                src="/public/a.mp4"
+                src="/a.mp4"
                 autoPlay
                 loop
                 muted
