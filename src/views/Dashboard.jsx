@@ -155,53 +155,107 @@ const Dashboard = ({ user, apiFetch }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-        {/* BMI 卡片 - 更新 Hover 內容 */}
-        <div id="guide-bmi" className={`group bg-white p-6 rounded-[32px] border-4 border-emerald-400 flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer ${guideStep === 0 ? 'z-[310] ring-[12px] ring-emerald-500/30 scale-105 shadow-2xl' : ''}`}>
-          <div className="relative z-10 transition-all duration-300 group-hover:opacity-0 group-hover:-translate-y-4">
+        {/* 🟢 BMI 卡片 - 視覺化量表設計 */}
+        <div id="guide-bmi" className={`group bg-white p-6 rounded-[32px] border-4 border-emerald-400 flex flex-col justify-center relative overflow-hidden transition-all duration-500 ease-out cursor-pointer hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.4)] ${guideStep === 0 ? 'z-[310] ring-[12px] ring-emerald-500/30 scale-105 shadow-2xl' : ''}`}>
+
+          {/* 原本的卡片內容 */}
+          <div className="relative z-10 transition-all duration-500 group-hover:opacity-0 group-hover:-translate-y-6 group-hover:scale-95">
             <h3 className="text-sm font-black text-slate-400 mb-1 flex items-center gap-2"><Scale size={16} className="text-emerald-500" /> BMI 身體質量指數</h3>
-            <div className="flex items-end gap-3 mb-2"><span className="text-4xl font-black text-slate-800">{bmi > 0 ? bmi : '--'}</span><span className={`text-xs font-bold px-2 py-1 rounded-md mb-1 bg-emerald-100 text-emerald-600`}>健康指標</span></div>
+            <div className="flex items-end gap-3 mb-2">
+              <span className="text-4xl font-black text-slate-800">{bmi > 0 ? bmi : '--'}</span>
+              <span className="text-xs font-bold px-2 py-1 rounded-md mb-1 bg-emerald-100 text-emerald-600">健康指標</span>
+            </div>
             <p className="text-xs font-bold text-slate-400">身高 {height}cm 體重 {weight}kg</p>
           </div>
-          <Scale size={80} className="absolute -right-4 -bottom-4 text-emerald-50 transition-transform duration-500 group-hover:scale-150 group-hover:-rotate-12" />
+          <Scale size={90} className="absolute -right-4 -bottom-4 text-emerald-50 transition-all duration-700 ease-out group-hover:scale-[2.5] group-hover:-rotate-45 group-hover:opacity-10 group-hover:text-emerald-900" />
 
-          <div className="absolute inset-0 bg-emerald-500 p-6 flex flex-col justify-center opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 transition-all duration-300 z-20 translate-y-8 group-hover:translate-y-0 text-white">
-            <h4 className="text-sm font-black mb-2 flex items-center gap-1"><Scale size={14} /> BMI 公式與標準</h4>
-            <p className="text-[11px] font-bold mb-2 uppercase tracking-tighter">體重(kg) / 身高(m)²</p>
-            <div className="space-y-1 text-[10px] font-bold opacity-90 border-t border-emerald-400/50 pt-2">
-              <p>• 體重過輕：BMI &lt; 18.5</p>
-              <p>• 健康標準：18.5 ≦ BMI ＜ 24</p>
-              <p>• 體重過重：24 ≦ BMI ＜ 27</p>
-              <p>• 肥胖指數：BMI ≧ 27</p>
+          {/* 🔽 修改重點：Hover 覆蓋層大幅縮減 p-8 變成 p-5，各種 mb (margin-bottom) 也縮小 */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-700 p-5 flex flex-col justify-center opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 transition-all duration-500 ease-out z-20 text-white">
+            <h4 className="text-lg font-black mb-2 flex items-center gap-2"><Scale size={18} /> BMI 診斷標準</h4>
+
+            {/* 視覺化彩色條 */}
+            <div className="relative w-full h-3 bg-white/20 rounded-full mb-1 overflow-hidden flex border border-white/30 shrink-0">
+              <div className="h-full bg-blue-300 w-[18%]" title="過輕" />
+              <div className="h-full bg-emerald-400 w-[24%]" title="正常" />
+              <div className="h-full bg-orange-400 w-[28%]" title="過重" />
+              <div className="h-full bg-rose-500 flex-1" title="肥胖" />
+            </div>
+            <div className="flex justify-between text-[10px] font-black mb-3 opacity-80 px-1 shrink-0">
+              <span>18.5</span><span>24</span><span>27</span>
+            </div>
+
+            {/* 🔽 修改重點：將 space-y-2 改為 space-y-1，並把 py-2 縮小為 py-1，讓列表更緊湊 */}
+            <div className="space-y-1 text-xs font-bold flex-1">
+              {[
+                { label: '體重過輕', range: '< 18.5', active: bmi < 18.5 },
+                { label: '健康標準', range: '18.5 - 24', active: bmi >= 18.5 && bmi < 24 },
+                { label: '體重過重', range: '24 - 27', active: bmi >= 24 && bmi < 27 },
+                { label: '肥胖指數', range: '≥ 27', active: bmi >= 27 }
+              ].map((item, i) => (
+                <div key={i} className={`flex justify-between items-center px-3 py-1.5 rounded-xl transition-all duration-300 ${item.active ? 'bg-white text-emerald-700 scale-[1.02] shadow-md ring-2 ring-white/50' : 'bg-black/10 opacity-60'}`}>
+                  <span>{item.label}</span>
+                  <span className="text-[10px] sm:text-xs">{item.range}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* BMR 卡片 - 更新 Hover 內容 */}
-        <div id="guide-bmr" className={`group bg-white p-6 rounded-[32px] border-4 border-emerald-400 flex flex-col justify-center relative overflow-hidden transition-all duration-300 cursor-pointer ${guideStep === 1 ? 'z-[310] ring-[12px] ring-emerald-500/30 scale-105 shadow-2xl' : ''}`}>
-          <div className="relative z-10 transition-all duration-300 group-hover:opacity-0 group-hover:-translate-y-4">
-            <h3 className="text-sm font-black text-slate-400 mb-1 flex items-center gap-2"><Flame size={16} className="text-emerald-500" /> BMR 基礎代謝率</h3>
+        {/* 🟠 BMR 卡片 - 能量組成與 TDEE 分析 */}
+        <div id="guide-bmr" className={`group bg-white p-6 rounded-[32px] border-4 border-amber-400 flex flex-col justify-center relative overflow-hidden transition-all duration-500 ease-out cursor-pointer hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.4)] ${guideStep === 1 ? 'z-[310] ring-[12px] ring-amber-500/30 scale-105 shadow-2xl' : ''}`}>
+          <div className="relative z-10 transition-all duration-500 group-hover:opacity-0 group-hover:-translate-y-6 group-hover:scale-95">
+            <h3 className="text-sm font-black text-slate-400 mb-1 flex items-center gap-2"><Flame size={16} className="text-amber-500" /> BMR 基礎代謝率</h3>
             <div className="flex items-end gap-2 mb-2"><span className="text-4xl font-black text-slate-800">{bmr > 0 ? bmr : '--'}</span><span className="text-sm font-bold text-slate-400 mb-1.5">kcal/天</span></div>
             <p className="text-xs font-bold text-slate-400">維持生命所需的最低熱量</p>
           </div>
-          <Flame size={80} className="absolute -right-4 -bottom-4 text-emerald-50 transition-transform duration-500 group-hover:scale-150 group-hover:-rotate-12" />
+          <Flame size={90} className="absolute -right-4 -bottom-4 text-amber-50 transition-all duration-700 ease-out group-hover:scale-[2.5] group-hover:rotate-12 group-hover:opacity-10 group-hover:text-amber-900" />
 
-          <div className="absolute inset-0 bg-emerald-500 p-6 flex flex-col justify-center opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 transition-all duration-300 z-20 translate-y-8 group-hover:translate-y-0 text-white">
-            <h4 className="text-sm font-black mb-2 flex items-center gap-1"><Flame size={14} /> BMR 計算公式</h4>
-            <p className="text-[10px] font-bold mb-1 italic">Mifflin-St Jeor 公式：</p>
-            <div className="space-y-1 text-[10px] font-bold opacity-90 border-t border-emerald-400/50 pt-2">
-              <p>男：10W + 6.25H - 5A + 5</p>
-              <p>女：10W + 6.25H - 5A - 161</p>
-              <p className="mt-1 text-[9px] leading-tight opacity-70">※ W:體重(kg), H:身高(cm), A:年齡</p>
+          {/* Hover 覆蓋層：個人化能量分析 */}
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-700 p-8 flex flex-col justify-center opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 transition-all duration-500 ease-out z-20 text-white">
+            <h4 className="text-xl font-black mb-4 flex items-center gap-2"><Flame size={20} /> 代謝數據分析</h4>
+
+            <div className="bg-white/10 rounded-2xl p-4 mb-6 border border-white/20 backdrop-blur-sm">
+              <p className="text-[10px] font-black uppercase opacity-70 mb-2 tracking-widest">您的計算基準</p>
+              <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm font-bold">
+                <div className="flex justify-between border-b border-white/10 pb-1"><span>體重</span><span>{weight}kg</span></div>
+                <div className="flex justify-between border-b border-white/10 pb-1"><span>身高</span><span>{height}cm</span></div>
+                <div className="flex justify-between border-b border-white/10 pb-1"><span>年齡</span><span>{age}歲</span></div>
+                <div className="flex justify-between border-b border-white/10 pb-1"><span>性別</span><span>{gender === 'Female' ? '女' : '男'}</span></div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-white text-orange-700 p-4 rounded-2xl shadow-xl transform transition-transform duration-500 translate-y-4 group-hover:translate-y-0">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-black uppercase">預估每日總消耗 (TDEE)</span>
+                  <span className="bg-orange-100 px-2 py-0.5 rounded text-[10px]">輕量活動</span>
+                </div>
+                <div className="text-2xl font-black">{Math.round(bmr * 1.375)} <span className="text-sm">kcal</span></div>
+              </div>
+
+              <p className="text-[11px] font-bold leading-relaxed opacity-90 italic px-2 transform transition-transform duration-500 delay-100 translate-y-4 group-hover:translate-y-0">
+                基礎代謝是您即使整天躺著也會消耗的熱量。加上日常走動後，建議每日攝取約 {Math.round(bmr * 1.2)} ~ {Math.round(bmr * 1.5)} 大卡來維持體重。
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900 p-6 rounded-[32px] border-4 border-emerald-500 flex flex-col justify-center relative overflow-hidden shadow-lg">
+        {/* 🌃 造訪人數卡片 (維持黑色酷炫風格) */}
+        <div className="group bg-slate-900 p-6 rounded-[32px] border-4 border-slate-800 hover:border-emerald-500 flex flex-col justify-center relative overflow-hidden shadow-lg transition-all duration-500 hover:-translate-y-2 cursor-default">
+          <div className="absolute top-0 -left-[100%] w-1/2 h-full block transform -skew-x-12 bg-gradient-to-r from-transparent via-white/10 to-transparent z-20 group-hover:left-[200%] transition-all duration-1000 ease-in-out pointer-events-none" />
           <div className="relative z-10 flex flex-col h-full">
-            <h3 className="text-sm font-black text-white/50 mb-1 flex justify-between items-center"><span className="flex items-center gap-2"><Users size={16} className="text-emerald-400" /> 造訪人數</span><div className="bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">Live</div></h3>
-            <div className="flex items-end gap-2 mb-2 text-white"><span className="text-4xl font-black">{todayVisit}</span><span className="text-sm font-bold text-slate-400 mb-1.5">人次</span></div>
-            <div className="w-full h-16 min-h-[64px] mt-auto">
-              <ResponsiveContainer width="100%" height="100%"><LineChart data={visitStats}><XAxis dataKey="date" hide /><RechartsTooltip contentStyle={{ backgroundColor: '#0f172a', border: '2px solid #10b981', borderRadius: '12px', color: '#fff', fontSize: '10px' }} labelStyle={{ display: 'none' }} formatter={(value) => [`${value} 人`, '造訪']} /><Line type="monotone" dataKey="visit_count" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 4 }} /></LineChart></ResponsiveContainer>
+            <h3 className="text-sm font-black text-white/50 mb-1 flex justify-between items-center">
+              <span className="flex items-center gap-2 transition-colors duration-300 group-hover:text-emerald-400"><Users size={16} className="text-emerald-400" /> 造訪人數</span>
+              <div className="bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">Live</div>
+            </h3>
+            <div className="flex items-end gap-2 mb-2 text-white"><span className="text-4xl font-black group-hover:text-emerald-300 transition-colors duration-300">{todayVisit}</span><span className="text-sm font-bold text-slate-400 mb-1.5">人次</span></div>
+            <div className="w-full h-16 min-h-[64px] mt-auto opacity-70 group-hover:opacity-100">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={visitStats}>
+                  <XAxis dataKey="date" hide />
+                  <Line type="monotone" dataKey="visit_count" stroke="#10b981" strokeWidth={3} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
@@ -212,8 +266,18 @@ const Dashboard = ({ user, apiFetch }) => {
           <h2 className="text-xl font-black text-slate-800 flex items-center gap-2 mb-6"><TrendingUp className="text-emerald-500" /> AI 評分趨勢</h2>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              {/* 🔽 這裡！把原本的 bottom: 0 改成了 bottom: 20 */}
-              <LineChart data={[...dietRecords].map(r => ({ date: safeParseDate(r.created_at).toLocaleDateString(), score: r.ai_health_score }))} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+              <LineChart
+                data={[...dietRecords].slice(0, 10).reverse().map((r, index) => {
+                  const d = safeParseDate(r.created_at);
+                  const uniqueDateStr = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+                  return {
+                    date: uniqueDateStr,
+                    score: Number(r.ai_health_score) || 0
+                  };
+                })}
+                margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="date" hide />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
