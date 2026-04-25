@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Activity, Flame, TrendingUp, Calendar, AlertTriangle, Bell, X,
   CheckCircle2, PieChart as PieChartIcon, Clock, HeartPulse, Scale,
-  Globe, Users, Sparkles, Database, Image as ImageIcon, Flag, HelpCircle, ChevronRight, ChevronLeft
+  Globe, Users, Sparkles, Database, Image as ImageIcon, Flag, HelpCircle, ChevronRight, ChevronLeft, Rocket
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -24,8 +24,8 @@ const safeParseDate = (dateString) => {
 
 const Dashboard = ({ user, apiFetch }) => {
   const [dietRecords, setDietRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [_1, setLoading] = useState(true);
+  const [_, setShowWelcomeModal] = useState(false);
   const [guideStep, setGuideStep] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [activeModalTab, setActiveModalTab] = useState('analysis');
@@ -34,13 +34,28 @@ const Dashboard = ({ user, apiFetch }) => {
   const [visitStats, setVisitStats] = useState([]);
   const [todayVisit, setTodayVisit] = useState(0);
 
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [announcement, setAnnouncement] = useState(null);
+
   useEffect(() => {
-    const hasSeenWelcome = sessionStorage.getItem('hasSeenWelcome_v1.2');
+
+    const data = {
+      version: "v1.2.0",
+      title: "🎉 歡迎使用 Healthy Diet Manager",
+      updates: [
+        "系統已與 YOLOv11 核心對接",
+        "支援即時營養比例圓餅圖",
+        "新增 AI 營養師建議功能"
+      ]
+    };
+    setAnnouncement(data);
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome_v1.2');
     if (!hasSeenWelcome) {
-      setShowWelcomeModal(true);
-      sessionStorage.setItem('hasSeenWelcome_v1.2', 'true');
+      setShowUpdateModal(true);
+      localStorage.setItem('hasSeenWelcome_v1.2', 'true');
     }
     fetchDashboardData();
+
   }, []);
 
   const fetchDashboardData = async () => {
@@ -107,8 +122,12 @@ const Dashboard = ({ user, apiFetch }) => {
         const res = await apiFetch(`/diet_image`, { method: 'POST', body: JSON.stringify({ record_id: selectedRecord.id }) });
         if (res.image_base64) { setRecordImageBase64(res.image_base64); setImageFetchStatus('success'); }
         else setImageFetchStatus('error');
-      } catch (e) { setImageFetchStatus('error'); }
+      } catch (_) { setImageFetchStatus('error'); }
     }
+  };
+  const closeUpdateModal = () => {
+    setShowUpdateModal(false);
+    localStorage.setItem('hasSeenAnnouncement_v1', 'true');
   };
 
   const height = Number(user?.height) || 0;
@@ -120,7 +139,38 @@ const Dashboard = ({ user, apiFetch }) => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-24 px-4 sm:px-6 relative">
-      {/* 導覽浮窗 */}
+
+      {showUpdateModal && announcement && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+          <div className="bg-white rounded-[40px] w-full max-w-md overflow-hidden border-4 border-amber-400 shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="bg-amber-400 p-6 text-amber-950 text-center">
+              <div className="bg-white/40 w-fit mx-auto p-3 rounded-2xl mb-3">
+                <Bell size={32} className="animate-ring" />
+              </div>
+              <h2 className="text-2xl font-black">{announcement.title}</h2>
+            </div>
+
+            <div className="p-8">
+              <ul className="space-y-4 mb-8">
+                {announcement.updates.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3 text-slate-700 font-bold">
+                    <CheckCircle2 size={20} className="text-emerald-500 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={closeUpdateModal}
+                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg hover:bg-slate-800 transition-all"
+              >
+                我知道了，不再顯示
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {guideStep !== null && (
         <div className="fixed inset-0 z-[300] bg-slate-900/80 backdrop-blur-sm transition-all">
           <div className={`absolute inset-x-0 ${steps[guideStep].position === 'top' ? 'top-0' : 'bottom-0'} flex justify-center p-6 sm:p-10 pointer-events-none`}>

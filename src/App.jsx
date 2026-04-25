@@ -29,7 +29,8 @@ export default function App() {
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
-    sessionStorage.removeItem('hasSeenWelcome_v1.2');
+    localStorage.removeItem('hasSeenWelcome_v1.2');
+    //hasSeenWelcome_v1.2
   };
 
   const apiFetch = async (endpoint, options = {}) => {
