@@ -41,7 +41,7 @@ const Dashboard = ({ user, apiFetch }) => {
 
     const data = {
       version: "v1.2.0",
-      title: "🎉 歡迎使用 Healthy Diet Manager",
+      title: "Healthy Diet System 公告",
       updates: [
         "系統已與 YOLOv11 核心對接",
         "支援即時營養比例圓餅圖",
