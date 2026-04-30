@@ -39,12 +39,21 @@ export default function App() {
     if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
 
     const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-    if (response.status === 401) {
+
+    if (response.status === 401 && !['/auth/login', '/auth/register'].includes(endpoint)) {
       handleLogout();
       throw new Error('登入已過期');
     }
+
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || '請求失敗');
+
+    if (!response.ok) {
+      // 🌟 重要：把 status 包進 Error 物件裡丟出去
+      const error = new Error(data.error || '請求失敗');
+      error.status = response.status;
+      throw error;
+    }
+
     return data;
   };
 

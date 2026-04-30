@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { Activity, AlertCircle } from 'lucide-react';
 
 const LoginView = ({ apiFetch, setToken, showNotification }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (errorMsg) {
+      const timer = setTimeout(() => setErrorMsg(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMsg]);
+
   const executeLogin = async (targetEmail, targetPassword) => {
     setIsLoading(true);
+    setErrorMsg('');
     try {
       const data = await apiFetch('/auth/login', {
         method: 'POST',
@@ -18,7 +28,25 @@ const LoginView = ({ apiFetch, setToken, showNotification }) => {
       localStorage.setItem('token', data.token);
       showNotification('登入成功！');
     } catch (err) {
-      showNotification(err.message || '登入失敗，請檢查帳號密碼或伺服器狀態', 'error');
+      let friendlyMsg = '';
+
+      // 優先檢查狀態碼，而不是直接看 err.message
+      const statusCode = err.status || err.response?.status;
+
+      if (statusCode === 401) {
+        friendlyMsg = '驗證失敗：帳號或密碼錯誤，或是您的登入狀態已過期。';
+      } else if (statusCode === 409 || err.message?.includes('exists')) {
+        friendlyMsg = '此電子郵件已被註冊過囉！';
+      } else if (statusCode === 400) {
+        friendlyMsg = '資料格式錯誤，請檢查信箱格式或密碼長度。';
+      } else if (statusCode >= 500) {
+        friendlyMsg = '伺服器維護中，請稍後再試。';
+      } else {
+        friendlyMsg = err.message || '登入失敗，請稍後再試';
+      }
+
+      setErrorMsg(friendlyMsg);
+      showNotification(friendlyMsg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -31,6 +59,13 @@ const LoginView = ({ apiFetch, setToken, showNotification }) => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-50 via-slate-50 to-blue-50 relative overflow-hidden">
+
+      <div className={`fixed top-8 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 transform ${errorMsg ? 'translate-y-0 opacity-100' : '-translate-y-12 opacity-0 pointer-events-none'}`}>
+        <div className="bg-red-500 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-red-400">
+          <AlertCircle size={20} />
+          <span className="font-bold tracking-wide">{errorMsg}</span>
+        </div>
+      </div>
 
       <div className="absolute -top-10 -left-10 sm:top-10 sm:left-10 text-emerald-100 opacity-40 pointer-events-none"><Activity size={250} /></div>
 
