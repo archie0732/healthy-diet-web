@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css'; // 必須引入 KaTeX 的 CSS 才能漂亮渲染公式！
+import 'katex/dist/katex.min.css';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -44,8 +44,10 @@ const Consult = ({ user, apiFetch, showNotification }) => {
   const [rooms, setRooms] = useState([]);
   const [activeRoomId, setActiveRoomId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isRoomLoading, setIsRoomLoading] = useState(false);
 
   const token = localStorage.getItem('token');
+  const activeRoomTitle = rooms.find((room) => room.id === activeRoomId)?.title || "新對話";
 
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -67,19 +69,43 @@ const Consult = ({ user, apiFetch, showNotification }) => {
     fetchRooms();
   }, []);
 
+  const syncRoomTitleFromDb = async (roomId) => {
+    if (!roomId) return;
+
+    try {
+      const data = await apiFetch('/chat_rooms');
+      const dbRoom = data?.rooms?.find((room) => room.id === roomId);
+      if (!dbRoom) return;
+
+      setRooms((prev) =>
+        prev.map((room) =>
+          room.id === roomId
+            ? { ...room, title: dbRoom.title || room.title }
+            : room
+        )
+      );
+    } catch (err) {
+      console.error("同步聊天室標題失敗", err);
+    }
+  };
+
   useEffect(() => {
     if (!activeRoomId) return;
 
     const fetchHistory = async () => {
+      setIsRoomLoading(true);
       try {
         setChatHistory([]);
         const currentRoom = rooms.find(r => r.id === activeRoomId);
         if (currentRoom && currentRoom.title === "新對話") return;
 
+        await syncRoomTitleFromDb(activeRoomId);
         const data = await apiFetch(`/room_history/${activeRoomId}`);
         if (data && data.history) setChatHistory(data.history);
       } catch (err) {
         console.error("無法載入歷史紀錄", err);
+      } finally {
+        setIsRoomLoading(false);
       }
     };
     fetchHistory();
@@ -326,7 +352,7 @@ const Consult = ({ user, apiFetch, showNotification }) => {
             <BotMessageSquare size={24} className="sm:w-7 sm:h-7" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tighter text-slate-900">🥦 專屬 AI 營養諮詢</h2>
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tighter text-slate-900 truncate max-w-[60vw] sm:max-w-[420px]">{activeRoomTitle}</h2>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -339,7 +365,15 @@ const Consult = ({ user, apiFetch, showNotification }) => {
 
         {/* 對話歷史區 */}
         <div ref={chatContainerRef} className="flex-1 p-5 sm:p-9 overflow-y-auto overscroll-none scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex flex-col gap-9">
-          {chatHistory.length === 0 ? (
+          {isRoomLoading ? (
+            <div className="flex flex-col items-center justify-center h-full m-auto text-center px-4 animate-in fade-in duration-300">
+              <div className="bg-white px-8 py-6 rounded-3xl shadow-lg border border-slate-100 flex items-center gap-3">
+                <Activity size={22} className="text-emerald-500 animate-spin" />
+                <span className="font-bold text-slate-700 tracking-tight">聊天室資料載入中...</span>
+              </div>
+              <p className="text-slate-400 text-sm mt-4 font-medium">正在讀取訊息與標題</p>
+            </div>
+          ) : chatHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full m-auto text-center px-4 animate-in fade-in duration-700">
               <div className="bg-white p-8 rounded-[40px] shadow-xl shadow-slate-100/50 mb-8 border border-slate-50 transform hover:scale-105 transition-transform duration-300">
                 <BrainCircuit size={60} className="text-emerald-500" />
@@ -473,7 +507,7 @@ const Consult = ({ user, apiFetch, showNotification }) => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={isThinking || !activeRoomId}
+              disabled={isThinking || isRoomLoading || !activeRoomId}
               className="p-4 h-[58px] w-[58px] bg-slate-100 text-slate-500 rounded-[20px] hover:bg-emerald-50 hover:text-emerald-600 border border-transparent hover:border-emerald-200 active:scale-95 transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-50"
             >
               <ImagePlus size={24} />
@@ -484,7 +518,7 @@ const Consult = ({ user, apiFetch, showNotification }) => {
                 value={question}
                 onChange={e => setQuestion(e.target.value)}
                 placeholder="輸入健康或飲食問題，或上傳圖片..."
-                disabled={isThinking || !activeRoomId}
+                disabled={isThinking || isRoomLoading || !activeRoomId}
                 rows={Math.min(4, Math.max(1, question.split('\n').length))}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -499,7 +533,7 @@ const Consult = ({ user, apiFetch, showNotification }) => {
 
             <button
               type="submit"
-              disabled={isThinking || (!question.trim() && !selectedImage) || !activeRoomId}
+              disabled={isThinking || isRoomLoading || (!question.trim() && !selectedImage) || !activeRoomId}
               className="bg-gradient-to-b from-emerald-500 to-emerald-600 text-white p-4 h-[58px] w-[58px] rounded-[20px] hover:from-emerald-600 hover:to-emerald-700 active:scale-95 transition-all duration-300 disabled:opacity-40 shadow-lg shadow-emerald-200/70 border border-emerald-500 flex items-center justify-center shrink-0 active:shadow-inner"
             >
               <Send size={24} className={(question.trim() || selectedImage) && !isThinking ? 'animate-bounce' : ''} />
