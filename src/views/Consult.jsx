@@ -29,6 +29,7 @@ const BgPattern = () => (
 );
 
 const Consult = ({ user, apiFetch, showNotification }) => {
+  const QUESTION_MAX_LENGTH = 500;
   const [question, setQuestion] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -159,6 +160,10 @@ const Consult = ({ user, apiFetch, showNotification }) => {
     };
     reader.readAsDataURL(file);
     e.target.value = null;
+  };
+
+  const handleQuestionChange = (e) => {
+    setQuestion(e.target.value.slice(0, QUESTION_MAX_LENGTH));
   };
 
   const handleAsk = async (e) => {
@@ -516,7 +521,8 @@ const Consult = ({ user, apiFetch, showNotification }) => {
             <div className="relative flex-1 group">
               <textarea
                 value={question}
-                onChange={e => setQuestion(e.target.value)}
+                onChange={handleQuestionChange}
+                maxLength={QUESTION_MAX_LENGTH}
                 placeholder="輸入健康或飲食問題，或上傳圖片..."
                 disabled={isThinking || isRoomLoading || !activeRoomId}
                 rows={Math.min(4, Math.max(1, question.split('\n').length))}
