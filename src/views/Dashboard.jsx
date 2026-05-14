@@ -34,6 +34,7 @@ const Dashboard = ({ user, apiFetch }) => {
   const [visitStats, setVisitStats] = useState([]);
   const [todayVisit, setTodayVisit] = useState(0);
   const [chatbotStatus, setChatbotStatus] = useState({ tone: 'checking', label: '檢查中...', detail: '' });
+  const [gemmaStatus, setGemmaStatus] = useState({ tone: 'checking', label: '檢查中...', detail: '' });
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [announcement, setAnnouncement] = useState(null);
@@ -72,17 +73,38 @@ const Dashboard = ({ user, apiFetch }) => {
           try {
             data = JSON.parse(rawText);
           } catch {
-            data = { ping_response: rawText };
+            data = { message: rawText };
           }
         }
 
-        return { http_status: response.status, ...data };
+        return { ok: response.ok, http_status: response.status, ...data };
       };
 
-      const [dietResult, statsResult, chatCheckResult] = await Promise.allSettled([
+      const gemmaHealthRequest = async () => {
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const response = await fetch('/gemma4/health', { headers });
+        const rawText = await response.text();
+        let data = {};
+
+        if (rawText) {
+          try {
+            data = JSON.parse(rawText);
+          } catch {
+            const text = rawText.trim();
+            const looksLikeHtml = /^<!doctype html>/i.test(text) || /^<html/i.test(text);
+            data = { message: looksLikeHtml ? '回傳非 JSON（可能打到前端路由）' : text };
+          }
+        }
+
+        return { ok: response.ok, http_status: response.status, ...data };
+      };
+
+      const [dietResult, statsResult, chatCheckResult, gemmaHealthResult] = await Promise.allSettled([
         apiFetch('/diet_record', { method: 'GET' }),
         apiFetch('/month_stats'),
         chatCheckRequest(),
+        gemmaHealthRequest(),
       ]);
 
       if (dietResult.status === 'fulfilled' && Array.isArray(dietResult.value)) {
@@ -96,26 +118,44 @@ const Dashboard = ({ user, apiFetch }) => {
 
       if (chatCheckResult.status === 'fulfilled') {
         const data = chatCheckResult.value || {};
-        const hasProxyChatFields = typeof data?.ping_ok === 'boolean' && typeof data?.proxy_chat_available === 'boolean';
+        const httpStatus = Number(data?.http_status) || 0;
+        const detailMessage =
+          (typeof data?.error === 'string' && data.error.trim()) ||
+          (typeof data?.message === 'string' && data.message.trim()) ||
+          (typeof data?.ping_response === 'string' && data.ping_response.trim()) ||
+          '';
+        const detail = [`HTTP ${httpStatus || 'N/A'}`, detailMessage].filter(Boolean).join(' | ');
 
-        if (!hasProxyChatFields) {
-          setChatbotStatus({ tone: 'unknown', label: '狀態格式異常', detail: '缺少 ping_ok 或 proxy_chat_available' });
+        if (data?.ok || (httpStatus >= 200 && httpStatus < 300)) {
+          setChatbotStatus({ tone: 'online', label: '運行中', detail: '' });
         } else {
-          const isOnline = data.ping_ok === true && data.proxy_chat_available === true;
-          const statusCode = data?.ping_status_code ?? data?.http_status ?? null;
-          const statusCodeText = statusCode ? `HTTP ${statusCode}` : '';
-          const pingResponseText = typeof data?.ping_response === 'string' ? data.ping_response.trim() : '';
-          const detail = [statusCodeText, pingResponseText].filter(Boolean).join(' | ');
-
-          if (isOnline) {
-            setChatbotStatus({ tone: 'online', label: '運行中', detail: '' });
-          } else {
-            setChatbotStatus({ tone: 'offline', label: '離線', detail: detail || '無法連線到聊天機器人' });
-          }
+          setChatbotStatus({ tone: 'offline', label: '離線', detail: detail || '無法連線到聊天機器人' });
         }
       } else {
+        const reasonMessage =
+          (typeof chatCheckResult.reason?.message === 'string' && chatCheckResult.reason.message) ||
+          String(chatCheckResult.reason || '未知錯誤');
         console.error(chatCheckResult.reason);
-        setChatbotStatus({ tone: 'offline', label: '檢查失敗', detail: '無法連線到聊天機器人' });
+        setChatbotStatus({ tone: 'offline', label: '檢查失敗', detail: `HTTP N/A | ${reasonMessage}` });
+      }
+
+      if (gemmaHealthResult.status === 'fulfilled') {
+        const data = gemmaHealthResult.value || {};
+        const apiHttpStatus = Number(data?.status ?? data?.http_status ?? data?.httpStatusCode ?? 0);
+        const detailMessage = typeof data?.message === 'string' ? data.message.trim() : '';
+        const detail = [`HTTP ${apiHttpStatus || 'N/A'}`, detailMessage].filter(Boolean).join(' | ');
+
+        if (apiHttpStatus === 200) {
+          setGemmaStatus({ tone: 'online', label: '運行中', detail: '' });
+        } else {
+          setGemmaStatus({ tone: 'offline', label: '連線失敗', detail: detail || '無法連線到 gemma4 服務' });
+        }
+      } else {
+        const reasonMessage =
+          (typeof gemmaHealthResult.reason?.message === 'string' && gemmaHealthResult.reason.message) ||
+          String(gemmaHealthResult.reason || '未知錯誤');
+        console.error(gemmaHealthResult.reason);
+        setGemmaStatus({ tone: 'offline', label: '連線失敗', detail: `HTTP N/A | ${reasonMessage}` });
       }
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
@@ -196,6 +236,14 @@ const Dashboard = ({ user, apiFetch }) => {
     : chatbotStatus.tone === 'offline'
       ? 'text-rose-300'
       : chatbotStatus.tone === 'checking'
+        ? 'text-amber-300'
+        : 'text-slate-300';
+
+  const gemmaStatusColor = gemmaStatus.tone === 'online'
+    ? 'text-emerald-300'
+    : gemmaStatus.tone === 'offline'
+      ? 'text-rose-300'
+      : gemmaStatus.tone === 'checking'
         ? 'text-amber-300'
         : 'text-slate-300';
 
@@ -353,6 +401,14 @@ const Dashboard = ({ user, apiFetch }) => {
               <span className={chatbotStatusColor}>{chatbotStatus.label}</span>
             </div>
             {chatbotStatus.detail ? <p className="mb-2 text-[10px] font-bold text-slate-500">{chatbotStatus.detail}</p> : null}
+            <div
+              className={`mb-2 flex items-center gap-2 text-xs font-bold ${gemmaStatus.detail ? 'cursor-help' : ''}`}
+              title={gemmaStatus.detail || undefined}
+            >
+              <Database size={14} className={gemmaStatusColor} />
+              <span className="text-slate-400">Gemma4 模型狀態</span>
+              <span className={gemmaStatusColor}>{gemmaStatus.label}</span>
+            </div>
             <div className="w-full h-16 min-h-[64px] mt-auto opacity-70 group-hover:opacity-100">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={visitStats}>
