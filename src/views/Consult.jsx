@@ -176,11 +176,22 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             .filter(Boolean)
             .join('\n')
           : rawContent;
+        const image = extractImage(msg);
+        const normalizedContent = typeof content === 'string' ? content : JSON.stringify(content) ?? '';
+        const hasTextContent = normalizedContent.trim().length > 0;
+
+        if (role === 'ai' && !hasTextContent && !image) {
+          return {
+            role: 'ai',
+            content: '[系統訊息] 對話錯誤：此筆 AI 回覆為空，可能生成失敗。',
+            image: null,
+          };
+        }
 
         return {
           role,
-          content: typeof content === 'string' ? content : JSON.stringify(content),
-          image: extractImage(msg),
+          content: normalizedContent,
+          image,
         };
       })
       .filter((msg) => Boolean(msg.content) || Boolean(msg.image));
@@ -554,6 +565,35 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     ]);
   };
 
+  const appendErrorMessageToChat = (rawMessage) => {
+    const normalizedError =
+      typeof rawMessage === 'string'
+        ? rawMessage.trim()
+        : String(rawMessage ?? '').trim();
+    const errorContent = normalizedError
+      ? `[系統訊息] 對話錯誤：${normalizedError}`
+      : '[系統訊息] 對話發生錯誤，請稍後再試。';
+
+    setChatHistory((prev) => {
+      const nextHistory = [...prev];
+      const lastMsg = nextHistory[nextHistory.length - 1];
+      if (lastMsg?.role === 'ai' && !lastMsg.content) {
+        nextHistory.pop();
+      }
+
+      const tailMsg = nextHistory[nextHistory.length - 1];
+      if (tailMsg?.role === 'ai' && tailMsg.content === errorContent) {
+        return nextHistory;
+      }
+
+      nextHistory.push({
+        role: 'ai',
+        content: errorContent,
+      });
+      return nextHistory;
+    });
+  };
+
   const handleApproveAction = async (action) => {
     if (!pendingApproval || isSubmittingApproval) return;
     setIsSubmittingApproval(true);
@@ -865,6 +905,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             } else if (eventType === 'error') {
               const message = content || data?.message || data?.error || 'AI 回覆失敗，請稍後再試';
               showNotification(String(message), 'error');
+              appendErrorMessageToChat(String(message));
             } else if (!eventType && content) {
               applyChunk(content);
             }
@@ -891,16 +932,9 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
       await refreshRoomsFromServer(targetRoomId);
     } catch (err) {
-      showNotification(err.message, 'error');
-      setChatHistory((prev) => {
-        if (prev.length === 0) return prev;
-        const nextHistory = [...prev];
-        const lastMsg = nextHistory[nextHistory.length - 1];
-        if (lastMsg?.role === 'ai' && !lastMsg.content) {
-          nextHistory.pop();
-        }
-        return nextHistory;
-      });
+      const errorMessage = err?.message || '對話發生錯誤，請稍後再試。';
+      showNotification(errorMessage, 'error');
+      appendErrorMessageToChat(errorMessage);
     } finally {
       setIsThinking(false);
       setAiStatus('');
