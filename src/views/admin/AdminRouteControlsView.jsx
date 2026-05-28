@@ -1,6 +1,47 @@
 import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { normalizeList } from './utils';
+import { normalizeList, serializeQuery } from './utils';
+
+const ROUTE_ANNOUNCEMENT_MAP_KEY = 'routeMaintenanceAnnouncementMap';
+const ANNOUNCEMENT_TITLE = '功能維修通知';
+
+const readAnnouncementMap = () => {
+  try {
+    const raw = localStorage.getItem(ROUTE_ANNOUNCEMENT_MAP_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const writeAnnouncementMap = (value) => {
+  localStorage.setItem(ROUTE_ANNOUNCEMENT_MAP_KEY, JSON.stringify(value));
+};
+
+const pickAnnouncementId = (item) => item?.id ?? item?._id ?? item?.announcementId;
+
+const buildAnnouncementContent = (routeKey, reason) => [
+  `功能 ${routeKey} 目前暫停服務。`,
+  reason ? `原因：${reason}` : '原因：系統維護',
+  `維護代碼：${routeKey}`,
+].join('\n');
+
+const findMatchingAnnouncement = (items, routeKey) =>
+  items.find((item) => {
+    const content = String(item?.content ?? item?.message ?? '');
+    return content.includes(`維護代碼：${routeKey}`);
+  }) || null;
+
+const normalizeControl = (item) => {
+  const normalized = { ...item };
+  if (typeof normalized.isEnabled !== 'boolean' && typeof normalized.is_enabled === 'boolean') {
+    normalized.isEnabled = normalized.is_enabled;
+  }
+  if (!normalized.routeKey && normalized.route_key) {
+    normalized.routeKey = normalized.route_key;
+  }
+  return normalized;
+};
 
 const AdminRouteControlsView = ({ apiFetch }) => {
   const [controls, setControls] = useState([]);
@@ -9,17 +50,6 @@ const AdminRouteControlsView = ({ apiFetch }) => {
   const [updatingKey, setUpdatingKey] = useState('');
   const [error, setError] = useState('');
 
-  const normalizeControl = (item) => {
-    const normalized = { ...item };
-    if (typeof normalized.isEnabled !== 'boolean' && typeof normalized.is_enabled === 'boolean') {
-      normalized.isEnabled = normalized.is_enabled;
-    }
-    if (!normalized.routeKey && normalized.route_key) {
-      normalized.routeKey = normalized.route_key;
-    }
-    return normalized;
-  };
-
   const fetchControls = async () => {
     setLoading(true);
     setError('');
@@ -27,6 +57,7 @@ const AdminRouteControlsView = ({ apiFetch }) => {
       const data = await apiFetch('/admin/route-controls');
       const list = normalizeList(data, ['routeControls', 'items', 'data', 'results']).map(normalizeControl);
       setControls(list);
+
       const reasonMap = {};
       list.forEach((item) => {
         reasonMap[item.routeKey] = item.reason || '';
@@ -44,22 +75,88 @@ const AdminRouteControlsView = ({ apiFetch }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const createAndPublishMaintenanceAnnouncement = async (routeKey, reason) => {
+    const content = buildAnnouncementContent(routeKey, reason);
+    const created = await apiFetch('/admin/announcements', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: ANNOUNCEMENT_TITLE,
+        content,
+      }),
+    });
+
+    let announcementId = pickAnnouncementId(created);
+    if (!announcementId) {
+      const listData = await apiFetch(`/admin/announcements${serializeQuery({ limit: 50, offset: 0 })}`);
+      const list = normalizeList(listData, ['announcements', 'items', 'data', 'results']);
+      announcementId = pickAnnouncementId(findMatchingAnnouncement(list, routeKey));
+    }
+
+    if (!announcementId) {
+      throw new Error('建立公告成功，但找不到公告 ID');
+    }
+
+    await apiFetch(`/admin/announcements/${announcementId}/publish`, {
+      method: 'POST',
+    });
+
+    const announcementMap = readAnnouncementMap();
+    announcementMap[routeKey] = announcementId;
+    writeAnnouncementMap(announcementMap);
+  };
+
+  const archiveMaintenanceAnnouncement = async (routeKey) => {
+    const announcementMap = readAnnouncementMap();
+    let announcementId = announcementMap[routeKey] || '';
+
+    if (!announcementId) {
+      const listData = await apiFetch(`/admin/announcements${serializeQuery({ limit: 50, offset: 0 })}`);
+      const list = normalizeList(listData, ['announcements', 'items', 'data', 'results']);
+      announcementId = pickAnnouncementId(findMatchingAnnouncement(list, routeKey)) || '';
+    }
+
+    if (announcementId) {
+      await apiFetch(`/admin/announcements/${announcementId}/archive`, {
+        method: 'POST',
+      });
+    }
+
+    delete announcementMap[routeKey];
+    writeAnnouncementMap(announcementMap);
+  };
+
   const handleToggle = async (item) => {
     if (!item?.routeKey || item.isProtected) return;
-    setUpdatingKey(item.routeKey);
+
+    const routeKey = item.routeKey;
+    const nextEnabled = !item.isEnabled;
+    const reason = draftReasons[routeKey] || '';
+
+    setUpdatingKey(routeKey);
     setError('');
+
     try {
-      const payload = {
-        is_enabled: !item.isEnabled,
-        reason: draftReasons[item.routeKey] || '',
-      };
-      const updated = await apiFetch(`/admin/route-controls/${encodeURIComponent(item.routeKey)}`, {
+      const updated = await apiFetch(`/admin/route-controls/${encodeURIComponent(routeKey)}`, {
         method: 'PATCH',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          is_enabled: nextEnabled,
+          reason,
+        }),
       });
+
       setControls((prev) =>
-        prev.map((row) => (row.routeKey === item.routeKey ? normalizeControl({ ...row, ...updated }) : row)),
+        prev.map((row) => (row.routeKey === routeKey ? normalizeControl({ ...row, ...updated }) : row)),
       );
+
+      try {
+        if (nextEnabled) {
+          await archiveMaintenanceAnnouncement(routeKey);
+        } else {
+          await createAndPublishMaintenanceAnnouncement(routeKey, reason);
+        }
+      } catch (syncErr) {
+        setError(`Route control 已更新，但同步公告失敗：${syncErr?.message || '未知錯誤'}`);
+      }
     } catch (err) {
       setError(err?.message || '更新 route control 失敗');
     } finally {
@@ -74,7 +171,7 @@ const AdminRouteControlsView = ({ apiFetch }) => {
           <div>
             <h1 className="text-xl font-extrabold text-slate-900">Route Controls</h1>
             <p className="text-sm text-slate-500">
-              受控路由停用後，該路由會回傳 `503 Service Unavailable`
+              受控路由停用後，該路由會回傳 `503 Service Unavailable`，並自動同步維修公告
             </p>
           </div>
           <button
@@ -156,3 +253,4 @@ const AdminRouteControlsView = ({ apiFetch }) => {
 };
 
 export default AdminRouteControlsView;
+

@@ -36,9 +36,20 @@ const splitAnnouncementContent = (value) => {
     .filter(Boolean);
 };
 
+const selectLatestAnnouncement = (value) => {
+  if (!Array.isArray(value)) return value;
+  if (value.length === 0) return null;
+
+  return [...value].sort((a, b) => {
+    const timeA = new Date(a?.publishedAt ?? a?.updatedAt ?? a?.createdAt ?? 0).getTime();
+    const timeB = new Date(b?.publishedAt ?? b?.updatedAt ?? b?.createdAt ?? 0).getTime();
+    return timeB - timeA;
+  })[0];
+};
+
 const normalizeAnnouncementPayload = (payload) => {
   const rawBase = payload?.current ?? payload?.announcement ?? payload?.data ?? payload;
-  const raw = Array.isArray(rawBase) ? rawBase[0] : rawBase;
+  const raw = selectLatestAnnouncement(rawBase);
   if (!raw || typeof raw !== 'object') return null;
 
   const title = raw.title || raw.subject || raw.name || '系統公告';
@@ -80,6 +91,7 @@ const Dashboard = ({ user, apiFetch }) => {
   const fetchAnnouncementForDashboard = async () => {
     const endpoints = ['/api/announcements/current', '/api/notifications/current'];
     const token = localStorage.getItem('token');
+    const loginNonce = sessionStorage.getItem('authLoginNonce') || 'default';
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     for (const endpoint of endpoints) {
@@ -90,8 +102,7 @@ const Dashboard = ({ user, apiFetch }) => {
         const normalized = normalizeAnnouncementPayload(data);
         if (!normalized) continue;
 
-        const sessionLoginKey = token || 'guest';
-        const seenKey = `announcementShown:${sessionLoginKey}:${normalized.id}`;
+        const seenKey = `announcementShown:${loginNonce}:${normalized.id}`;
         setAnnouncementSeenKey(seenKey);
         setAnnouncement(normalized);
         if (sessionStorage.getItem(seenKey) !== 'true') {

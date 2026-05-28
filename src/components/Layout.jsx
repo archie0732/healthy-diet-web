@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { Home, MessageSquare, Camera, Users, User, Shield } from 'lucide-react';
+import { Home, MessageSquare, Camera, Users, User, Shield, Wrench, X } from 'lucide-react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { isAdminRole } from '@/lib/authSession';
@@ -26,7 +26,7 @@ const normalizeAnnouncement = (payload) => {
   };
 };
 
-export default function Layout({ user, token, handleLogout, notification }) {
+export default function Layout({ user, token, handleLogout, notification, maintenanceNotice, clearMaintenanceNotice }) {
   const location = useLocation();
   const [announcement, setAnnouncement] = useState(null);
 
@@ -70,6 +70,25 @@ export default function Layout({ user, token, handleLogout, notification }) {
               <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
                 <p className="font-bold">{announcement.title}</p>
                 <p className="text-sm">{announcement.content}</p>
+              </div>
+            ) : null}
+
+            {maintenanceNotice ? (
+              <div className="mb-4 flex items-start justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900">
+                <div className="flex items-start gap-3">
+                  <Wrench size={18} className="mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-bold">功能維修中</p>
+                    <p className="text-sm">{maintenanceNotice.message}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearMaintenanceNotice}
+                  className="rounded-full p-1 text-rose-500 hover:bg-rose-100"
+                >
+                  <X size={16} />
+                </button>
               </div>
             ) : null}
 

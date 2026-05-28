@@ -26,6 +26,7 @@ import {
 } from '@/lib/authSession';
 
 const API_BASE = '/api';
+const AUTH_LOGIN_NONCE_KEY = 'authLoginNonce';
 const AUTH_EXCLUDE_LOGOUT_ENDPOINTS = new Set([
   '/auth/login',
   '/auth/register',
@@ -43,6 +44,7 @@ export default function App() {
   const [authSession, setAuthSession] = useState(() => getStoredAuthSession());
   const [user, setUser] = useState(null);
   const [notification, setNotification] = useState(null);
+  const [maintenanceNotice, setMaintenanceNotice] = useState(null);
 
   const token = authSession.token;
   const role = authSession.role;
@@ -55,11 +57,14 @@ export default function App() {
   const handleLogout = () => {
     setAuthSession({ token: null, refreshToken: null, expiresIn: null, role: null });
     setUser(null);
+    setMaintenanceNotice(null);
     clearAuthSession();
+    sessionStorage.removeItem(AUTH_LOGIN_NONCE_KEY);
     localStorage.removeItem('hasSeenWelcome_v1.2');
   };
 
   const applyAuthPayload = (payload) => {
+    sessionStorage.setItem(AUTH_LOGIN_NONCE_KEY, String(Date.now()));
     if (typeof payload === 'string') {
       const next = persistAuthSession({
         token: payload,
@@ -113,6 +118,18 @@ export default function App() {
     if (!response.ok) {
       const err = new Error(data.error || `HTTP ${response.status}`);
       err.status = response.status;
+      if (response.status === 503) {
+        const reason = typeof data.reason === 'string' ? data.reason.trim() : '';
+        const message = reason
+          ? `此功能目前維修中：${reason}`
+          : '此功能目前維修中，請稍後再試。';
+        err.message = message;
+        err.isMaintenance = true;
+        setMaintenanceNotice({
+          endpoint,
+          message,
+        });
+      }
       throw err;
     }
 
@@ -164,8 +181,10 @@ export default function App() {
       token,
       handleLogout,
       notification,
+      maintenanceNotice,
+      clearMaintenanceNotice: () => setMaintenanceNotice(null),
     }),
-    [user, token, notification],
+    [user, token, notification, maintenanceNotice],
   );
 
   return (
@@ -259,4 +278,3 @@ export default function App() {
     </Router>
   );
 }
-
