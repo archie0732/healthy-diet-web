@@ -51,7 +51,7 @@ export default function Layout({ user, token, handleLogout, notification }) {
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen w-full bg-slate-50 pb-16 md:pb-0">
+      <div className="flex min-h-screen w-full bg-gradient-to-br from-emerald-50 via-lime-50 to-teal-50 pb-16 md:pb-0">
         <AppSidebar user={user} handleLogout={handleLogout} />
 
         <main className="h-screen min-w-0 flex-1 overflow-y-auto">
@@ -59,7 +59,7 @@ export default function Layout({ user, token, handleLogout, notification }) {
             {notification ? (
               <div
                 className={`fixed left-1/2 top-8 z-50 -translate-x-1/2 rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-xl ${
-                  notification.type === 'error' ? 'bg-rose-600' : 'bg-slate-900'
+                  notification.type === 'error' ? 'bg-rose-600' : 'bg-emerald-600'
                 }`}
               >
                 {notification.msg}
@@ -67,7 +67,7 @@ export default function Layout({ user, token, handleLogout, notification }) {
             ) : null}
 
             {announcement ? (
-              <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+              <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
                 <p className="font-bold">{announcement.title}</p>
                 <p className="text-sm">{announcement.content}</p>
               </div>
@@ -77,7 +77,7 @@ export default function Layout({ user, token, handleLogout, notification }) {
               <div className="mb-4">
                 <Link
                   to="/admin"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
                 >
                   <Shield size={15} />
                   進入 Admin Console
@@ -89,7 +89,7 @@ export default function Layout({ user, token, handleLogout, notification }) {
           </div>
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-slate-200 bg-white md:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-emerald-200 bg-white/95 md:hidden">
           {NAV_ITEMS.map((item) => {
             const active = location.pathname === item.to;
             return (
@@ -97,7 +97,7 @@ export default function Layout({ user, token, handleLogout, notification }) {
                 key={item.to}
                 to={item.to}
                 className={`flex h-full w-full flex-col items-center justify-center text-[10px] font-bold ${
-                  active ? 'text-slate-900' : 'text-slate-400'
+                  active ? 'text-emerald-700' : 'text-emerald-900/45'
                 }`}
               >
                 <item.icon size={19} />
@@ -110,4 +110,3 @@ export default function Layout({ user, token, handleLogout, notification }) {
     </SidebarProvider>
   );
 }
-

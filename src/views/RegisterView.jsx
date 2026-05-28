@@ -30,10 +30,10 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
-        <h1 className="mb-1 text-2xl font-extrabold text-slate-900">建立帳號</h1>
-        <p className="mb-5 text-sm text-slate-500">註冊成功後會直接登入</p>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dcfce7_0%,_#f0fdf4_40%,_#ffffff_100%)] flex items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-white p-8 shadow-lg shadow-emerald-100/70">
+        <h1 className="mb-1 text-2xl font-extrabold text-emerald-900">建立帳號</h1>
+        <p className="mb-5 text-sm text-emerald-800/70">註冊成功後會直接登入</p>
 
         {error ? (
           <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
@@ -43,9 +43,9 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
 
         <form onSubmit={handleRegister} className="space-y-4">
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Email</span>
+            <span className="mb-1 block text-sm font-semibold text-emerald-900">Email</span>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-slate-400"
+              className="w-full rounded-xl border border-emerald-200 px-3 py-3 outline-none focus:border-emerald-500"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -54,9 +54,9 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Password</span>
+            <span className="mb-1 block text-sm font-semibold text-emerald-900">Password</span>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-slate-400"
+              className="w-full rounded-xl border border-emerald-200 px-3 py-3 outline-none focus:border-emerald-500"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -65,9 +65,9 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Nickname</span>
+            <span className="mb-1 block text-sm font-semibold text-emerald-900">Nickname</span>
             <input
-              className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-slate-400"
+              className="w-full rounded-xl border border-emerald-200 px-3 py-3 outline-none focus:border-emerald-500"
               type="text"
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
@@ -77,15 +77,15 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full rounded-xl bg-slate-900 py-3 font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
+            className="w-full rounded-xl bg-emerald-600 py-3 font-bold text-white transition hover:bg-emerald-500 disabled:opacity-60"
           >
             {isLoading ? '建立中...' : '註冊'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-600">
+        <p className="mt-6 text-center text-sm text-emerald-900/70">
           已經有帳號？
-          <Link className="ml-1 font-semibold text-slate-900 underline" to="/login">
+          <Link className="ml-1 font-semibold text-emerald-700 underline" to="/login">
             回登入
           </Link>
         </p>
@@ -95,4 +95,3 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
 };
 
 export default RegisterView;
-

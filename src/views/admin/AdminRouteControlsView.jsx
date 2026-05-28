@@ -9,12 +9,23 @@ const AdminRouteControlsView = ({ apiFetch }) => {
   const [updatingKey, setUpdatingKey] = useState('');
   const [error, setError] = useState('');
 
+  const normalizeControl = (item) => {
+    const normalized = { ...item };
+    if (typeof normalized.isEnabled !== 'boolean' && typeof normalized.is_enabled === 'boolean') {
+      normalized.isEnabled = normalized.is_enabled;
+    }
+    if (!normalized.routeKey && normalized.route_key) {
+      normalized.routeKey = normalized.route_key;
+    }
+    return normalized;
+  };
+
   const fetchControls = async () => {
     setLoading(true);
     setError('');
     try {
       const data = await apiFetch('/admin/route-controls');
-      const list = normalizeList(data, ['routeControls', 'items', 'data', 'results']);
+      const list = normalizeList(data, ['routeControls', 'items', 'data', 'results']).map(normalizeControl);
       setControls(list);
       const reasonMap = {};
       list.forEach((item) => {
@@ -39,7 +50,7 @@ const AdminRouteControlsView = ({ apiFetch }) => {
     setError('');
     try {
       const payload = {
-        isEnabled: !item.isEnabled,
+        is_enabled: !item.isEnabled,
         reason: draftReasons[item.routeKey] || '',
       };
       const updated = await apiFetch(`/admin/route-controls/${encodeURIComponent(item.routeKey)}`, {
@@ -47,7 +58,7 @@ const AdminRouteControlsView = ({ apiFetch }) => {
         body: JSON.stringify(payload),
       });
       setControls((prev) =>
-        prev.map((row) => (row.routeKey === item.routeKey ? { ...row, ...updated } : row)),
+        prev.map((row) => (row.routeKey === item.routeKey ? normalizeControl({ ...row, ...updated }) : row)),
       );
     } catch (err) {
       setError(err?.message || '更新 route control 失敗');
@@ -145,4 +156,3 @@ const AdminRouteControlsView = ({ apiFetch }) => {
 };
 
 export default AdminRouteControlsView;
-

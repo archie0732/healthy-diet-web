@@ -22,6 +22,42 @@ const safeParseDate = (dateString) => {
   return isNaN(d.getTime()) ? new Date() : d;
 };
 
+const splitAnnouncementContent = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item ?? '').trim()).filter(Boolean);
+  }
+
+  const text = String(value ?? '').trim();
+  if (!text) return [];
+
+  return text
+    .split(/\r?\n|•|·|。/)
+    .map((item) => item.replace(/^[\-\s]+/, '').trim())
+    .filter(Boolean);
+};
+
+const normalizeAnnouncementPayload = (payload) => {
+  const raw = payload?.current ?? payload?.announcement ?? payload?.data ?? payload;
+  if (!raw || typeof raw !== 'object') return null;
+
+  const title = raw.title || raw.subject || raw.name || '系統公告';
+  const updates = splitAnnouncementContent(
+    raw.updates ?? raw.items ?? raw.messages ?? raw.content ?? raw.message,
+  );
+  if (updates.length === 0) return null;
+
+  const stableId = String(
+    raw.id
+    ?? raw._id
+    ?? raw.announcementId
+    ?? raw.updatedAt
+    ?? raw.publishedAt
+    ?? `${title}:${updates.join('|')}`,
+  );
+
+  return { id: stableId, title, updates };
+};
+
 const Dashboard = ({ user, apiFetch }) => {
   const [dietRecords, setDietRecords] = useState([]);
   const [_1, setLoading] = useState(true);
@@ -38,26 +74,35 @@ const Dashboard = ({ user, apiFetch }) => {
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [announcement, setAnnouncement] = useState(null);
+  const [announcementSeenKey, setAnnouncementSeenKey] = useState('');
+
+  const fetchAnnouncementForDashboard = async () => {
+    const endpoints = ['/api/announcements/current', '/api/notifications/current'];
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint);
+        if (!response.ok) continue;
+        const data = await response.json();
+        const normalized = normalizeAnnouncementPayload(data);
+        if (!normalized) continue;
+
+        const seenKey = `hasSeenAnnouncement:${normalized.id}`;
+        setAnnouncementSeenKey(seenKey);
+        setAnnouncement(normalized);
+        if (localStorage.getItem(seenKey) !== 'true') {
+          setShowUpdateModal(true);
+        }
+        return;
+      } catch {
+        // Try next endpoint
+      }
+    }
+  };
 
   useEffect(() => {
-
-    const data = {
-      version: 'v1.2.0',
-      title: '健康飲食系統更新',
-      updates: [
-        '影像辨識模型升級 YOLOv11',
-        '飲食紀錄與分析介面優化',
-        '聊天 AI 回覆體驗優化',
-      ],
-    };
-    setAnnouncement(data);
-    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome_v1.2');
-    if (!hasSeenWelcome) {
-      setShowUpdateModal(true);
-      localStorage.setItem('hasSeenWelcome_v1.2', 'true');
-    }
+    fetchAnnouncementForDashboard();
     fetchDashboardData();
-
   }, []);
 
   const fetchDashboardData = async () => {
@@ -217,7 +262,9 @@ const Dashboard = ({ user, apiFetch }) => {
   };
   const closeUpdateModal = () => {
     setShowUpdateModal(false);
-    localStorage.setItem('hasSeenAnnouncement_v1', 'true');
+    if (announcementSeenKey) {
+      localStorage.setItem(announcementSeenKey, 'true');
+    }
   };
 
   const height = Number(user?.height) || 0;
