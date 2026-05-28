@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -53,8 +53,8 @@ const MenuSection = ({ items, pathname }) => (
             isActive={isActive}
             className={`h-10 rounded-xl px-3 ${
               isActive
-                ? 'bg-emerald-600 text-white hover:bg-emerald-600 hover:text-white'
-                : 'text-emerald-900/80 hover:bg-emerald-50 hover:text-emerald-900'
+                ? 'bg-slate-900 text-white hover:bg-slate-900 hover:text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
             <Link to={item.url} className="flex items-center gap-3">
@@ -74,15 +74,15 @@ export function AppSidebar({ user, handleLogout }) {
   const showAdmin = isAdminRole(role);
 
   return (
-    <Sidebar variant="sidebar" className="border-r border-emerald-200 bg-emerald-50/60">
+    <Sidebar variant="sidebar" className="border-r border-slate-200 bg-white">
       <SidebarHeader className="px-4 py-5">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 overflow-hidden rounded-xl border border-emerald-200 bg-white">
+          <div className="h-10 w-10 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
             <img src="/icon.webp" alt="Healthy Diet" className="h-full w-full object-cover" />
           </div>
           <div>
-            <p className="font-extrabold text-emerald-900">Healthy Diet</p>
-            <p className="text-xs text-emerald-700/70">Workspace</p>
+            <p className="font-extrabold text-slate-900">Healthy Diet</p>
+            <p className="text-xs text-slate-500">Workspace</p>
           </div>
         </div>
       </SidebarHeader>
@@ -96,7 +96,7 @@ export function AppSidebar({ user, handleLogout }) {
 
         {showAdmin ? (
           <SidebarGroup>
-            <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-emerald-700/70">Admin</p>
+            <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-400">Admin</p>
             <SidebarGroupContent>
               <MenuSection items={adminMenu} pathname={location.pathname} />
             </SidebarGroupContent>
@@ -105,13 +105,13 @@ export function AppSidebar({ user, handleLogout }) {
       </SidebarContent>
 
       <SidebarFooter className="px-3 pb-4">
-        <div className="rounded-2xl border border-emerald-200 bg-white/90 p-3">
-          <p className="truncate font-semibold text-emerald-900">{user?.nickname || 'User'}</p>
-          <p className="mb-3 truncate text-xs text-emerald-700/70">{user?.email || '-'}</p>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <p className="truncate font-semibold text-slate-900">{user?.nickname || 'User'}</p>
+          <p className="mb-3 truncate text-xs text-slate-500">{user?.email || '-'}</p>
           <div className="grid grid-cols-2 gap-2">
             <Link
               to="/profile"
-              className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+              className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
             >
               <Settings size={14} />
               個人
@@ -130,3 +130,4 @@ export function AppSidebar({ user, handleLogout }) {
     </Sidebar>
   );
 }
+

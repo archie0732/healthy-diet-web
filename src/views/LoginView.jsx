@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Activity } from 'lucide-react';
 
 const LoginView = ({ apiFetch, setToken, showNotification }) => {
   const [email, setEmail] = useState('');
@@ -33,10 +34,24 @@ const LoginView = ({ apiFetch, setToken, showNotification }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dcfce7_0%,_#f0fdf4_40%,_#ffffff_100%)] flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-white p-8 shadow-lg shadow-emerald-100/70">
-        <h1 className="mb-1 text-2xl font-extrabold text-emerald-900">Healthy Diet Login</h1>
-        <p className="mb-5 text-sm text-emerald-800/70">登入後會儲存 token、refreshToken、expiresIn、user.role</p>
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
+        <div className="mb-6 flex justify-center">
+          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm">
+            <img
+              src="/icon.webp"
+              alt="Healthy Diet"
+              className="h-full w-full object-cover"
+              onError={(event) => {
+                event.currentTarget.style.display = 'none';
+                event.currentTarget.nextSibling.style.display = 'block';
+              }}
+            />
+            <Activity size={34} className="hidden text-slate-500" />
+          </div>
+        </div>
+
+        <h1 className="mb-5 text-2xl font-extrabold text-slate-900">Healthy Diet Login</h1>
 
         {error ? (
           <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
@@ -46,9 +61,9 @@ const LoginView = ({ apiFetch, setToken, showNotification }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-emerald-900">Email</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Email</span>
             <input
-              className="w-full rounded-xl border border-emerald-200 px-3 py-3 outline-none focus:border-emerald-500"
+              className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-slate-400"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -57,9 +72,9 @@ const LoginView = ({ apiFetch, setToken, showNotification }) => {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-emerald-900">Password</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Password</span>
             <input
-              className="w-full rounded-xl border border-emerald-200 px-3 py-3 outline-none focus:border-emerald-500"
+              className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-slate-400"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -70,7 +85,7 @@ const LoginView = ({ apiFetch, setToken, showNotification }) => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full rounded-xl bg-emerald-600 py-3 font-bold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+            className="w-full rounded-xl bg-slate-900 py-3 font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
           >
             {isLoading ? '登入中...' : '登入'}
           </button>
@@ -79,15 +94,15 @@ const LoginView = ({ apiFetch, setToken, showNotification }) => {
             type="button"
             disabled={isLoading}
             onClick={() => executeLogin('ckck@gmail.com', 'a123456')}
-            className="w-full rounded-xl border border-emerald-300 py-3 text-sm font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
+            className="w-full rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
             Demo 登入
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-emerald-900/70">
+        <p className="mt-6 text-center text-sm text-slate-600">
           還沒有帳號？
-          <Link className="ml-1 font-semibold text-emerald-700 underline" to="/register">
+          <Link className="ml-1 font-semibold text-slate-900 underline" to="/register">
             註冊
           </Link>
         </p>
