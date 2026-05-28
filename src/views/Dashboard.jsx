@@ -37,7 +37,8 @@ const splitAnnouncementContent = (value) => {
 };
 
 const normalizeAnnouncementPayload = (payload) => {
-  const raw = payload?.current ?? payload?.announcement ?? payload?.data ?? payload;
+  const rawBase = payload?.current ?? payload?.announcement ?? payload?.data ?? payload;
+  const raw = Array.isArray(rawBase) ? rawBase[0] : rawBase;
   if (!raw || typeof raw !== 'object') return null;
 
   const title = raw.title || raw.subject || raw.name || '系統公告';
@@ -78,19 +79,22 @@ const Dashboard = ({ user, apiFetch }) => {
 
   const fetchAnnouncementForDashboard = async () => {
     const endpoints = ['/api/announcements/current', '/api/notifications/current'];
+    const token = localStorage.getItem('token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     for (const endpoint of endpoints) {
       try {
-        const response = await fetch(endpoint);
+        const response = await fetch(endpoint, { headers });
         if (!response.ok) continue;
         const data = await response.json();
         const normalized = normalizeAnnouncementPayload(data);
         if (!normalized) continue;
 
-        const seenKey = `hasSeenAnnouncement:${normalized.id}`;
+        const sessionLoginKey = token || 'guest';
+        const seenKey = `announcementShown:${sessionLoginKey}:${normalized.id}`;
         setAnnouncementSeenKey(seenKey);
         setAnnouncement(normalized);
-        if (localStorage.getItem(seenKey) !== 'true') {
+        if (sessionStorage.getItem(seenKey) !== 'true') {
           setShowUpdateModal(true);
         }
         return;
@@ -263,7 +267,7 @@ const Dashboard = ({ user, apiFetch }) => {
   const closeUpdateModal = () => {
     setShowUpdateModal(false);
     if (announcementSeenKey) {
-      localStorage.setItem(announcementSeenKey, 'true');
+      sessionStorage.setItem(announcementSeenKey, 'true');
     }
   };
 

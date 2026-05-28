@@ -72,6 +72,8 @@ export function AppSidebar({ user, handleLogout }) {
   const location = useLocation();
   const role = user?.role || localStorage.getItem('userRole') || '';
   const showAdmin = isAdminRole(role);
+  const avatarUrl = user?.avatar_url || user?.avatarUrl || '';
+  const avatarFallback = user?.nickname?.charAt(0)?.toUpperCase() || 'U';
 
   return (
     <Sidebar variant="sidebar" className="border-r border-slate-200 bg-white">
@@ -106,8 +108,21 @@ export function AppSidebar({ user, handleLogout }) {
 
       <SidebarFooter className="px-3 pb-4">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <p className="truncate font-semibold text-slate-900">{user?.nickname || 'User'}</p>
-          <p className="mb-3 truncate text-xs text-slate-500">{user?.email || '-'}</p>
+          <div className="mb-3 flex items-center gap-3">
+            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-200">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="User Avatar" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-sm font-extrabold text-slate-700">
+                  {avatarFallback}
+                </div>
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-slate-900">{user?.nickname || 'User'}</p>
+              <p className="truncate text-xs text-slate-500">{user?.email || '-'}</p>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <Link
               to="/profile"
