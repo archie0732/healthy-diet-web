@@ -12,12 +12,16 @@ import ApiDocs from './views/ApiDocs';
 import Privacy from './views/Privacy';
 import LoginView from './views/LoginView';
 import RegisterView from './views/RegisterView';
+import NewsListView from './views/NewsListView';
+import NewsDetailView from './views/NewsDetailView';
+import KnowledgeSearchView from './views/KnowledgeSearchView';
 import AdminHome from './views/admin/AdminHome';
 import AdminUsersView from './views/admin/AdminUsersView';
 import AdminRouteControlsView from './views/admin/AdminRouteControlsView';
 import AdminAnnouncementsView from './views/admin/AdminAnnouncementsView';
 import AdminRagDocumentsView from './views/admin/AdminRagDocumentsView';
 import AdminLoginView from './views/admin/AdminLoginView';
+import AdminNewsToolsView from './views/admin/AdminNewsToolsView';
 import {
   clearAuthSession,
   getStoredAuthSession,
@@ -227,6 +231,9 @@ export default function App() {
               }
             />
             <Route path="/member" element={<Member />} />
+            <Route path="/news" element={<NewsListView apiFetch={apiFetch} role={role} />} />
+            <Route path="/news/:id" element={<NewsDetailView apiFetch={apiFetch} />} />
+            <Route path="/knowledge-search" element={<KnowledgeSearchView apiFetch={apiFetch} />} />
             <Route path="/api" element={<ApiDocs />} />
             <Route path="/privacy" element={<Privacy />} />
 
@@ -267,6 +274,14 @@ export default function App() {
               element={
                 <RequireAdmin token={token} role={role}>
                   <AdminRagDocumentsView apiFetch={apiFetch} />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/news-tools"
+              element={
+                <RequireAdmin token={token} role={role}>
+                  <AdminNewsToolsView apiFetch={apiFetch} showNotification={showNotification} />
                 </RequireAdmin>
               }
             />

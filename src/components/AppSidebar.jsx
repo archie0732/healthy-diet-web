@@ -6,12 +6,14 @@ import {
   Camera,
   Users,
   BookOpen,
+  Search,
   Settings,
   LogOut,
   Shield,
   Route,
   Megaphone,
   FileText,
+  Newspaper,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -30,6 +32,8 @@ const mainMenu = [
   { title: '儀表板', url: '/', icon: Home },
   { title: 'AI 諮詢', url: '/consult', icon: MessageSquare },
   { title: '飲食分析', url: '/diet', icon: Camera },
+  { title: '衛教新聞', url: '/news', icon: Newspaper },
+  { title: '知識搜尋', url: '/knowledge-search', icon: Search },
   { title: '團隊資訊', url: '/member', icon: Users },
   { title: 'API 文件', url: '/api', icon: BookOpen },
 ];
@@ -40,6 +44,7 @@ const adminMenu = [
   { title: 'Route 控制', url: '/admin/route-controls', icon: Route },
   { title: '公告管理', url: '/admin/announcements', icon: Megaphone },
   { title: 'RAG 文件', url: '/admin/rag-documents', icon: FileText },
+  { title: '新聞工具', url: '/admin/news-tools', icon: Newspaper },
 ];
 
 const MenuSection = ({ items, pathname }) => (

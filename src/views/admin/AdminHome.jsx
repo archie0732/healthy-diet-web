@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Users, Route, Megaphone, FileText } from 'lucide-react';
+import { ShieldCheck, Users, Route, Megaphone, FileText, Newspaper } from 'lucide-react';
 import { isAdminRole } from '@/lib/authSession';
 
 const cards = [
-  { to: '/admin/users', title: 'User 管理', icon: Users, desc: '查看使用者清單與個人資料' },
-  { to: '/admin/route-controls', title: 'Route 控制', icon: Route, desc: '啟用/停用受控 API 路由' },
-  { to: '/admin/announcements', title: '公告管理', icon: Megaphone, desc: '建立、發布、封存公告內容' },
-  { to: '/admin/rag-documents', title: 'RAG 文件', icon: FileText, desc: '上傳、重建索引與刪除文件' },
+  { to: '/admin/users', title: 'User 管理', icon: Users, desc: '查看使用者清單與個別帳號資料' },
+  { to: '/admin/route-controls', title: 'Route 控制', icon: Route, desc: '啟用或停用受控 API 與功能路由' },
+  { to: '/admin/announcements', title: '公告管理', icon: Megaphone, desc: '建立、發布與封存站內公告內容' },
+  { to: '/admin/rag-documents', title: 'RAG 文件', icon: FileText, desc: '上傳、重建索引與刪除知識庫文件' },
+  { to: '/admin/news-tools', title: 'News 工具', icon: Newspaper, desc: '手動同步 FDA 新聞並查看本機 markdown 檔案' },
 ];
 
 const AdminHome = ({ apiFetch }) => {
@@ -20,9 +21,10 @@ const AdminHome = ({ apiFetch }) => {
         const data = await apiFetch('/admin/me');
         setMe(data);
       } catch (err) {
-        setError(err?.message || '無法取得管理員身分資訊');
+        setError(err?.message || '無法載入管理者資訊');
       }
     };
+
     run();
   }, [apiFetch]);
 
@@ -35,7 +37,7 @@ const AdminHome = ({ apiFetch }) => {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900">Admin Console</h1>
-            <p className="text-sm text-slate-500">僅 `operator` / `super_admin` 可使用</p>
+            <p className="text-sm text-slate-500">供 `operator` / `super_admin` 使用的管理工作台。</p>
           </div>
         </div>
 
@@ -57,13 +59,13 @@ const AdminHome = ({ apiFetch }) => {
             </div>
             <div className="rounded-xl border border-slate-200 px-4 py-3">
               <p className="text-slate-500">Admin 權限</p>
-              <p className="font-semibold text-slate-900">{isAdminRole(me.role) ? '可用' : '不可用'}</p>
+              <p className="font-semibold text-slate-900">{isAdminRole(me.role) ? '已啟用' : '未啟用'}</p>
             </div>
           </div>
         ) : null}
       </section>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {cards.map((card) => (
           <Link
             key={card.to}
@@ -83,4 +85,3 @@ const AdminHome = ({ apiFetch }) => {
 };
 
 export default AdminHome;
-
