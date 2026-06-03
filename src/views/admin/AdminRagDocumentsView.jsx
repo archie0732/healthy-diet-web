@@ -166,7 +166,7 @@ const AdminRagDocumentsView = ({ apiFetch }) => {
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1fr_1.2fr]">
-        <form onSubmit={handleUpload} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <form onSubmit={handleUpload} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
           <h2 className="font-bold text-slate-900">上傳文件</h2>
           <label className="block">
             <span className="mb-1 block text-sm text-slate-600">File</span>
@@ -196,7 +196,7 @@ const AdminRagDocumentsView = ({ apiFetch }) => {
           </button>
         </form>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="mb-3 font-bold text-slate-900">文件列表</h2>
           <div className="mb-3 flex items-center justify-between text-xs text-slate-500">
             <span>{items.length} 筆</span>
@@ -230,16 +230,16 @@ const AdminRagDocumentsView = ({ apiFetch }) => {
                   type="button"
                   key={id}
                   onClick={() => setSelectedId(id)}
-                  className={`w-full rounded-xl border px-3 py-3 text-left ${
+                  className={`min-w-0 w-full rounded-xl border px-3 py-3 text-left ${
                     active ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <p className="truncate font-semibold text-slate-900">{item.fileName || item.filename || id}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${statusTone(status)}`}>{status}</span>
+                  <div className="mb-1 flex min-w-0 items-center justify-between gap-2">
+                    <p className="min-w-0 flex-1 truncate font-semibold text-slate-900">{item.fileName || item.filename || id}</p>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${statusTone(status)}`}>{status}</span>
                   </div>
-                  <p className="truncate text-xs text-slate-500">{id}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="break-all text-xs text-slate-500">{id}</p>
+                  <p className="mt-1 break-all text-xs text-slate-500">
                     retryCount: {item.retryCount ?? '-'} | nextRetryAt: {item.nextRetryAt || '-'}
                   </p>
                 </button>
@@ -248,12 +248,12 @@ const AdminRagDocumentsView = ({ apiFetch }) => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
           <h2 className="font-bold text-slate-900">文件明細</h2>
           {!selectedId ? <p className="text-sm text-slate-500">請從列表選一筆文件。</p> : null}
           {selectedId ? (
             <>
-              <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                 <Info label="status" value={selectedDoc?.status || selectedSummary?.status || '-'} />
                 <Info label="retryCount" value={selectedDoc?.retryCount ?? selectedSummary?.retryCount ?? '-'} />
                 <Info label="nextRetryAt" value={selectedDoc?.nextRetryAt || selectedSummary?.nextRetryAt || '-'} />
@@ -262,10 +262,10 @@ const AdminRagDocumentsView = ({ apiFetch }) => {
                   value={selectedDoc?.processingStartedAt || selectedSummary?.processingStartedAt || '-'}
                 />
                 <Info label="lastErrorAt" value={selectedDoc?.lastErrorAt || selectedSummary?.lastErrorAt || '-'} />
-                <Info label="errorMessage" value={selectedDoc?.errorMessage || selectedSummary?.errorMessage || '-'} />
+                <Info label="errorMessage" value={selectedDoc?.errorMessage || selectedSummary?.errorMessage || '-'} wrap />
               </div>
 
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={handleReindex}
@@ -286,7 +286,7 @@ const AdminRagDocumentsView = ({ apiFetch }) => {
                 </button>
               </div>
 
-              <pre className="max-h-60 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+              <pre className="max-h-60 min-w-0 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
                 {JSON.stringify(selectedDoc || selectedSummary, null, 2)}
               </pre>
             </>
@@ -297,12 +297,13 @@ const AdminRagDocumentsView = ({ apiFetch }) => {
   );
 };
 
-const Info = ({ label, value }) => (
-  <div className="rounded-xl border border-slate-200 px-3 py-2">
+const Info = ({ label, value, wrap = false }) => (
+  <div className="min-w-0 rounded-xl border border-slate-200 px-3 py-2">
     <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-    <p className="truncate font-semibold text-slate-800">{String(value)}</p>
+    <p className={`${wrap ? 'whitespace-pre-wrap break-all' : 'truncate'} font-semibold text-slate-800`}>
+      {String(value)}
+    </p>
   </div>
 );
 
 export default AdminRagDocumentsView;
-
