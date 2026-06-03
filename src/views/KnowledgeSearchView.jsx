@@ -36,7 +36,7 @@ const KnowledgeSearchView = ({ apiFetch }) => {
   const latestRequestKeyRef = useRef('');
 
   const activeRouteLabel = useMemo(
-    () => (mode === 'quick' ? 'GET /api/rag/search' : 'POST /api/rag/search'),
+    () => (mode === 'quick' ? 'GET /rag/search' : 'POST /rag/search'),
     [mode],
   );
 
@@ -140,7 +140,7 @@ const KnowledgeSearchView = ({ apiFetch }) => {
             <div>
               <h1 className="text-3xl font-black tracking-tight sm:text-4xl">知識搜尋</h1>
               <p className="mt-3 text-sm font-medium leading-6 text-slate-200 sm:text-base">
-                頁面會依模式切換到 `GET /api/rag/search` 或 `POST /api/rag/search`，並支援 debounce、來源篩選、空狀態與錯誤提示。
+                頁面會依模式切換到 `GET /rag/search` 或 `POST /rag/search`，並支援 debounce、來源篩選、空狀態與錯誤提示。
               </p>
             </div>
           </div>

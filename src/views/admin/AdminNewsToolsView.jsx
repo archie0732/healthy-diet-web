@@ -59,7 +59,7 @@ const AdminNewsToolsView = ({ apiFetch, showNotification }) => {
             <div>
               <h1 className="text-3xl font-black tracking-tight sm:text-4xl">News 工具</h1>
               <p className="mt-3 text-sm font-medium leading-6 text-slate-200 sm:text-base">
-                這裡只提供管理用途：手動觸發 `POST /api/news/sync`，以及查看 `GET /api/news-files` 的本機 markdown 檔名清單。
+                這裡只提供管理用途：手動觸發 `POST /news/sync`，以及查看 `GET /news-files` 的本機 markdown 檔名清單。
               </p>
             </div>
           </div>
@@ -119,7 +119,7 @@ const AdminNewsToolsView = ({ apiFetch, showNotification }) => {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-500">Debug Files</p>
-              <h2 className="text-2xl font-black text-slate-900">`/api/news-files`</h2>
+              <h2 className="text-2xl font-black text-slate-900">`/news-files`</h2>
             </div>
             <button
               type="button"

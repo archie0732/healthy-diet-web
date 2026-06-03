@@ -4,11 +4,11 @@ import { ShieldCheck, Users, Route, Megaphone, FileText, Newspaper } from 'lucid
 import { isAdminRole } from '@/lib/authSession';
 
 const cards = [
-  { to: '/admin/users', title: 'User 管理', icon: Users, desc: '查看使用者清單與個別帳號資料' },
-  { to: '/admin/route-controls', title: 'Route 控制', icon: Route, desc: '啟用或停用受控 API 與功能路由' },
-  { to: '/admin/announcements', title: '公告管理', icon: Megaphone, desc: '建立、發布與封存站內公告內容' },
-  { to: '/admin/rag-documents', title: 'RAG 文件', icon: FileText, desc: '上傳、重建索引與刪除知識庫文件' },
-  { to: '/admin/news-tools', title: 'News 工具', icon: Newspaper, desc: '手動同步 FDA 新聞並查看本機 markdown 檔案' },
+  { to: '/admin/users', title: 'User 管理', icon: Users, desc: '查看使用者資料與帳號狀態' },
+  { to: '/admin/route-controls', title: 'Route 控制', icon: Route, desc: '管理受保護路由的開關與維護原因' },
+  { to: '/admin/announcements', title: '公告管理', icon: Megaphone, desc: '建立、發布與封存前台公告' },
+  { to: '/admin/rag-documents', title: 'RAG 文件', icon: FileText, desc: '上傳並查看知識庫文件與處理狀態' },
+  { to: '/admin/news-tools', title: 'News 工具', icon: Newspaper, desc: '手動同步新聞並檢查 markdown 檔案清單' },
 ];
 
 const AdminHome = ({ apiFetch }) => {
@@ -21,7 +21,7 @@ const AdminHome = ({ apiFetch }) => {
         const data = await apiFetch('/admin/me');
         setMe(data);
       } catch (err) {
-        setError(err?.message || '無法載入管理者資訊');
+        setError(err?.message || '讀取管理者資訊失敗。');
       }
     };
 
@@ -37,7 +37,7 @@ const AdminHome = ({ apiFetch }) => {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900">Admin Console</h1>
-            <p className="text-sm text-slate-500">供 `operator` / `super_admin` 使用的管理工作台。</p>
+            <p className="text-sm text-slate-500">限 `operator` 與 `super_admin` 帳號使用。</p>
           </div>
         </div>
 

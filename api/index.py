@@ -11,20 +11,9 @@ TARGET_API_SERVER = os.environ.get(
     "TARGET_API_SERVER", "http://120.110.113.111:3000"
 ).rstrip("/")
 
-UPSTREAM_API_PREFIX_ROUTES = (
-    "news",
-    "news-files",
-    "rag/search",
-)
-
 
 def build_target_url(path: str) -> str:
     normalized_path = path.lstrip("/")
-    if any(
-        normalized_path == route or normalized_path.startswith(f"{route}/")
-        for route in UPSTREAM_API_PREFIX_ROUTES
-    ):
-        return f"{TARGET_API_SERVER}/api/{normalized_path}"
     return f"{TARGET_API_SERVER}/{normalized_path}"
 
 

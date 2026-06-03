@@ -87,7 +87,7 @@ const NewsListView = ({ apiFetch, role }) => {
             <div>
               <h1 className="text-3xl font-black tracking-tight sm:text-4xl">衛教新聞</h1>
               <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-200 sm:text-base">
-                這裡直接串接 Rust 後端的 `/api/news` 系列路由，提供最新同步的新聞列表與文章詳情。
+                這裡直接串接 Rust 後端的 `/news` 系列路由，提供最新同步的新聞列表與文章詳情。
               </p>
             </div>
           </div>

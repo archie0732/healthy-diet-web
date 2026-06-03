@@ -89,7 +89,7 @@ const Dashboard = ({ user, apiFetch }) => {
   const [announcementSeenKey, setAnnouncementSeenKey] = useState('');
 
   const fetchAnnouncementForDashboard = async () => {
-    const endpoints = ['/api/announcements/current', '/api/notifications/current'];
+    const endpoints = ['/api/announcements/current'];
     const token = localStorage.getItem('token');
     const loginNonce = sessionStorage.getItem('authLoginNonce') || 'default';
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -125,7 +125,7 @@ const Dashboard = ({ user, apiFetch }) => {
       const chatCheckRequest = async () => {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const response = await fetch('/proxy_chat_check', { headers });
+        const response = await fetch('/api/chat_check', { headers });
         const rawText = await response.text();
         let data = {};
 
@@ -143,7 +143,7 @@ const Dashboard = ({ user, apiFetch }) => {
       const gemmaHealthRequest = async () => {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const response = await fetch('/gemma4/health', { headers });
+        const response = await fetch('/api/gemma4/health', { headers });
         const rawText = await response.text();
         let data = {};
 
