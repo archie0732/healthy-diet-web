@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Activity, Send, BrainCircuit, Flag, Plus, X, Menu, BotMessageSquare, UserCircle, Sparkles, ImagePlus } from 'lucide-react';
+import { MessageSquare, Activity, Send, BrainCircuit, Flag, Plus, X, Menu, BotMessageSquare, ImagePlus } from 'lucide-react';
 
 // ?舀 Markdown?”?潸? LaTeX 憿舐內
 import ReactMarkdown from 'react-markdown';
@@ -17,17 +17,6 @@ const generateUUID = () => {
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
   );
 };
-
-const BgPattern = () => (
-  <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0 opacity-[0.015] pointer-events-none">
-    <defs>
-      <pattern id="dotPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-        <circle cx="2" cy="2" r="1.5" fill="currentColor" className="text-slate-900" />
-      </pattern>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#dotPattern)" />
-  </svg>
-);
 
 const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
   const QUESTION_MAX_LENGTH = 500;
@@ -943,49 +932,70 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
   };
 
   const approvalActionId = normalizeApprovalId(pendingApproval?.approvalId) ?? latestApprovalIdRef.current ?? null;
+  const starterSuggestions = [
+    'High-protein one-day meal plan',
+    'What should I eat for dinner during 16:8 fasting?',
+    'How can I order healthier when eating out?',
+    'Can you estimate whether I exceeded my calories today?',
+  ];
 
   return (
-    <div className="max-w-[1600px] mx-auto bg-[#f8fafc] sm:rounded-[36px] sm:shadow-[0_20px_70px_-10px_rgba(0,0,0,0.1)] sm:border border-slate-100 overflow-hidden flex h-[calc(100dvh-80px)] sm:h-[calc(100vh-140px)] relative w-[100vw] -mx-4 -mt-4 sm:w-auto sm:mx-0 sm:mt-0 z-30 font-sans antialiased" onClick={() => setReportingIdx(null)}>
-      <BgPattern />
+    <div
+      className="mx-auto flex h-[calc(100dvh-80px)] w-[100vw] max-w-[1480px] -mx-4 -mt-4 overflow-hidden bg-white sm:mx-0 sm:mt-0 sm:h-[calc(100vh-140px)] sm:w-auto sm:rounded-[28px] sm:border sm:border-slate-200 sm:shadow-[0_18px_60px_-24px_rgba(15,23,42,0.18)]"
+      onClick={() => setReportingIdx(null)}
+    >
+      <div className={`absolute sm:relative z-40 flex h-full w-[280px] flex-col border-r border-slate-200 bg-white transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'}`}>
+        <div className="border-b border-slate-200 p-4">
+          <div className="mb-4">
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Chats</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">Consult</h2>
+          </div>
 
-      {/* --- ?湧?甈??予摰文?銵剁? --- */}
-      <div className={`absolute sm:relative z-50 h-full w-[280px] bg-white/70 backdrop-blur-xl border-r border-slate-100 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'} flex flex-col`}>
-        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white/40">
-          <button
-            onClick={handleNewChat}
-            disabled={isRoomsLoading}
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-5 rounded-full flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-md shadow-emerald-200/60 hover:shadow-lg hover:shadow-emerald-300/70 border border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600 disabled:hover:shadow-md"
-          >
-            <Plus size={18} />
-            <span className="text-sm tracking-tight">新增聊天室</span>
-          </button>
-          <button onClick={() => setIsSidebarOpen(false)} className="ml-3 sm:hidden p-2.5 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleNewChat}
+              disabled={isRoomsLoading}
+              className="flex-1 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Plus size={16} />
+                New chat
+              </span>
+            </button>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="rounded-xl border border-slate-200 p-2.5 text-slate-500 transition hover:bg-slate-50 sm:hidden"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+        <div className="flex-1 space-y-2 overflow-y-auto p-3">
           {isRoomsLoading ? (
             Array.from({ length: 6 }).map((_, idx) => (
-              <div key={`room-skeleton-${idx}`} className="w-full p-3.5 rounded-[16px] border border-slate-100 bg-white/80 animate-pulse">
+              <div key={`room-skeleton-${idx}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 animate-pulse">
                 <div className="flex items-center gap-3">
                   <div className="h-4 w-4 rounded-md bg-slate-200"></div>
-                  <div className="h-3.5 rounded-full bg-slate-200 w-full"></div>
+                  <div className="h-3.5 w-full rounded-full bg-slate-200"></div>
                 </div>
               </div>
             ))
           ) : rooms.length === 0 ? (
-            <div className="text-center text-sm font-semibold text-slate-400 py-8">目前沒有聊天室</div>
+            <div className="py-8 text-center text-sm text-slate-400">No chats yet</div>
           ) : (
-            rooms.map(room => (
+            rooms.map((room) => (
               <button
                 key={room.id}
                 onClick={() => { setActiveRoomId(room.id); setIsSidebarOpen(false); }}
-                className={`w-full text-left p-3.5 rounded-[16px] transition-all duration-300 font-bold text-sm truncate flex items-center gap-3 relative group overflow-hidden ${activeRoomId === room.id ? 'bg-emerald-50 text-emerald-800 shadow-inner' : 'bg-transparent text-slate-700 hover:bg-slate-100/70'}`}
+                className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-sm transition ${
+                  activeRoomId === room.id
+                    ? 'border-slate-900 bg-slate-900 text-white'
+                    : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-50'
+                }`}
               >
-                <div className={`absolute left-0 top-0 h-full w-1 rounded-r-full bg-emerald-500 transition-transform duration-300 ${activeRoomId === room.id ? 'translate-x-0' : '-translate-x-full'}`}></div>
-                <MessageSquare size={17} className={activeRoomId === room.id ? 'text-emerald-500' : 'text-slate-400 group-hover:text-slate-500'} />
-                <span className="flex-1 truncate tracking-tight">{room.title || '新聊天室'}</span>
+                <MessageSquare size={16} className={activeRoomId === room.id ? 'text-white' : 'text-slate-400'} />
+                <span className="truncate font-medium">{room.title || 'Untitled chat'}</span>
               </button>
             ))
           )}
@@ -993,99 +1003,107 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       </div>
 
       {isSidebarOpen && (
-        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 sm:hidden transition-opacity duration-500"></div>
+        <div
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-900/30 sm:hidden"
+        ></div>
       )}
 
-      {/* --- 銝餃摰孵?嚗?憭抵?蝒? --- */}
-      <div className="flex-1 flex flex-col h-full w-full relative bg-slate-50/50">
-
-        {/* ?璅???*/}
-        <div className="bg-white/80 backdrop-blur-md p-4 sm:p-5 text-white flex items-center shadow-sm border-b border-slate-100 relative z-20 shrink-0">
-          <button onClick={() => setIsSidebarOpen(true)} className="sm:hidden mr-4 p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95">
-            <Menu size={22} />
-          </button>
-
-          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-2.5 rounded-2xl text-white shadow-lg shadow-emerald-100 border border-emerald-400 mr-4 shrink-0">
-            <BotMessageSquare size={24} className="sm:w-7 sm:h-7" />
-          </div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tighter text-slate-900 truncate max-w-[60vw] sm:max-w-[420px]">{activeRoomTitle}</h2>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Powered by Gemma4-e4b</span>
+      <div className="relative flex flex-1 flex-col bg-white">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 sm:hidden"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white">
+              <BotMessageSquare size={18} />
             </div>
+            <div className="min-w-0">
+              <h2 className="truncate text-base font-semibold text-slate-900 sm:text-lg">{activeRoomTitle}</h2>
+              <p className="text-xs text-slate-500">AI diet assistant</p>
+            </div>
+          </div>
+          <div className="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
+            <span className={`inline-block h-2 w-2 rounded-full ${isThinking ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+            <span>{isThinking ? 'Thinking' : 'Ready'}</span>
           </div>
         </div>
 
-        <div ref={chatContainerRef} className="flex-1 p-5 sm:p-9 overflow-y-auto overscroll-none scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex flex-col gap-9">
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
           {isRoomLoading ? (
-            <div className="flex flex-col items-center justify-center h-full m-auto text-center px-4 animate-in fade-in duration-300">
-              <div className="bg-white px-8 py-6 rounded-3xl shadow-lg border border-slate-100 flex items-center gap-3">
-                <Activity size={22} className="text-emerald-500 animate-spin" />
-                <span className="font-bold text-slate-700 tracking-tight">載入聊天室內容中...</span>
+            <div className="flex h-full items-center justify-center">
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-slate-600 shadow-sm">
+                <Activity size={18} className="animate-spin" />
+                <span className="text-sm font-medium">Loading chat...</span>
               </div>
-              <p className="text-slate-400 text-sm mt-4 font-medium">請稍候，系統正在載入聊天紀錄。</p>
             </div>
           ) : chatHistory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full m-auto text-center px-4 animate-in fade-in duration-700">
-              <div className="bg-white p-8 rounded-[40px] shadow-xl shadow-slate-100/50 mb-8 border border-slate-50 transform hover:scale-105 transition-transform duration-300">
-                <BrainCircuit size={60} className="text-emerald-500" />
+            <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center px-4 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-700">
+                <BrainCircuit size={28} />
               </div>
-              <h3 className="font-extrabold text-slate-900 text-2xl sm:text-3xl tracking-tighter mb-4">歡迎使用 AI 飲食顧問</h3>
-              <p className="text-slate-500 font-medium text-base sm:text-lg mb-10 max-w-lg leading-relaxed">輸入你的問題，AI 會依照你的目標提供飲食建議。</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
-                {[
-                  '今天該吃什麼比較健康？',
-                  '我身高 168，幫我估算每日熱量',
-                  '想減脂，晚餐可以怎麼吃？',
-                  '幫我安排一週飲食建議',
-                ].map((suggestion) => (
-                  <button key={suggestion} onClick={() => setQuestion(suggestion)} className="text-left text-sm sm:text-base bg-white/70 hover:bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 hover:shadow-emerald-50 hover:shadow-lg transition-all duration-300 font-semibold text-slate-700 flex items-center gap-2 group active:scale-95">
-                    <Sparkles size={16} className="text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <span className="tracking-tight">{suggestion}</span>
+              <h3 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">Start a new conversation</h3>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
+                Ask about calories, meal planning, fat loss, protein intake, or send a food photo for analysis.
+              </p>
+
+              <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
+                {starterSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => setQuestion(suggestion)}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    {suggestion}
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <>
+            <div className="mx-auto flex max-w-3xl flex-col gap-6">
               {chatHistory.map((msg, idx) => (
-                <div key={idx} className={`space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500`}>
+                <div key={idx}>
                   {msg.role === 'user' ? (
-                    <div className="flex justify-end items-start gap-3">
-                      <div className="flex flex-col items-end gap-1.5 max-w-[85%] sm:max-w-[75%]">
+                    <div className="flex justify-end gap-3">
+                      <div className="flex max-w-[85%] flex-col items-end gap-2 sm:max-w-[72%]">
                         {msg.image && (
-                          <img src={msg.image} alt="User Upload" className="max-w-[200px] sm:max-w-[300px] rounded-2xl shadow-md border-2 border-slate-100 object-cover" />
+                          <img
+                            src={msg.image}
+                            alt="User Upload"
+                            className="max-w-[220px] rounded-2xl border border-slate-200 object-cover sm:max-w-[300px]"
+                          />
                         )}
-                        {msg.content && msg.content !== '(圖片)' && (
-                          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white px-6 py-4 rounded-[26px] rounded-br-none shadow-lg shadow-emerald-100 border border-emerald-400/50 font-semibold leading-relaxed text-base tracking-tight shadow-inner">
+                        {msg.content && msg.content !== '(???)' && (
+                          <div className="rounded-[22px] rounded-br-md bg-slate-900 px-5 py-3.5 text-sm leading-6 text-white sm:text-[15px]">
                             {msg.content}
                           </div>
                         )}
                       </div>
-                      <UserCircle size={36} className="text-slate-300 mt-1 shrink-0" />
                     </div>
                   ) : (
-                    <div className="flex justify-start items-start gap-3 group relative">
-                      <div className="bg-emerald-600 p-2.5 rounded-2xl text-white shadow-lg shadow-emerald-100 border-2 border-emerald-400 shrink-0 mt-1">
-                        <BotMessageSquare size={18} />
+                    <div className="group flex gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700">
+                        <BotMessageSquare size={16} />
                       </div>
-                      <div className="flex flex-col gap-2 max-w-[90%] sm:max-w-[85%]">
+                      <div className="flex max-w-[92%] flex-col gap-2 sm:max-w-[84%]">
                         {msg.image && (
-                          <img src={msg.image} alt="AI Attachment" className="max-w-[220px] sm:max-w-[320px] rounded-2xl shadow-md border-2 border-slate-100 object-cover" />
+                          <img
+                            src={msg.image}
+                            alt="AI Attachment"
+                            className="max-w-[220px] rounded-2xl border border-slate-200 object-cover sm:max-w-[320px]"
+                          />
                         )}
-                        <div className="bg-white border border-slate-100 text-slate-800 px-6 py-5 rounded-[28px] rounded-tl-none shadow-soft shadow-slate-100/50 leading-relaxed font-medium text-base relative shadow-lg">
-                          {!msg.content || msg.content === "" ? (
-                            <span className="flex items-center gap-2 text-emerald-600 font-semibold">
-                              <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                              <span>{aiStatus || 'AI 思考中...'}</span>
+                        <div className="rounded-[22px] rounded-tl-md border border-slate-200 bg-white px-5 py-4 text-sm leading-6 text-slate-700 shadow-sm sm:text-[15px]">
+                          {!msg.content || msg.content === '' ? (
+                            <span className="flex items-center gap-2 font-medium text-slate-500">
+                              <span className="inline-block h-2 w-2 rounded-full bg-slate-400 animate-pulse"></span>
+                              <span>{aiStatus || 'Thinking...'}</span>
                             </span>
                           ) : (
-                            // ?舀 Markdown嚗銵冽嚗? LaTeX ?批捆皜脫?
-                            <div className="prose prose-slate sm:prose-lg max-w-none prose-headings:border-b prose-headings:pb-2 prose-headings:font-extrabold prose-headings:tracking-tighter prose-headings:text-slate-900 prose-a:text-blue-600 prose-strong:font-bold prose-strong:text-slate-900 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:p-3 prose-td:border prose-td:border-slate-300 prose-td:p-3 prose-code:bg-slate-100 prose-code:text-rose-600 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-pre:bg-slate-800 prose-pre:text-slate-50 leading-relaxed tracking-tight text-slate-800">
+                            <div className="prose prose-slate max-w-none prose-headings:border-b prose-headings:border-slate-200 prose-headings:pb-2 prose-headings:font-semibold prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-blue-600 prose-strong:text-slate-900 prose-code:rounded prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-pre:bg-slate-900 prose-pre:text-slate-50 prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:p-2 prose-td:border prose-td:border-slate-200 prose-td:p-2 sm:prose-base">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm, remarkMath]}
                                 rehypePlugins={[rehypeKatex]}
@@ -1096,28 +1114,33 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                           )}
                         </div>
 
-                        {!isThinking && msg.content !== "" && (
-                          <div className="relative self-start ml-2">
+                        {!isThinking && msg.content !== '' && (
+                          <div className="relative self-start">
                             <button
                               onClick={(e) => { e.stopPropagation(); setReportingIdx(reportingIdx === idx ? null : idx); }}
-                              className={`flex items-center gap-1.5 transition-all duration-300 active:scale-95 ${reportingIdx === idx ? 'text-rose-500' : 'text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100'}`}
+                              className={`flex items-center gap-1 text-[11px] font-medium transition ${reportingIdx === idx ? 'text-rose-500' : 'text-slate-400 opacity-0 group-hover:opacity-100 hover:text-rose-500'}`}
                             >
                               <Flag size={12} />
-                              <span className="text-[11px] font-bold uppercase tracking-widest">回報</span>
+                              <span>Report</span>
                             </button>
 
                             {reportingIdx === idx && (
-                              <div className="absolute left-0 bottom-full mb-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200" onClick={(e) => e.stopPropagation()}>
-                                <div className="p-2 bg-slate-50 border-b border-slate-100 text-slate-500 text-[10px] font-bold text-center uppercase tracking-wider">回報原因</div>
+                              <div
+                                className="absolute left-0 bottom-full z-50 mb-2 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                  Report
+                                </div>
                                 <div className="flex flex-col">
-                                  {['內容不正確', '建議不適合', '語氣不佳', '其他問題'].map((opt) => (
+                                  {['Incorrect', 'Incomplete', 'Off topic', 'Other'].map((opt) => (
                                     <button
                                       key={opt}
                                       onClick={() => {
                                         setReportingIdx(null);
-                                        showNotification('已收到你的回報，感謝。', 'success');
+                                        showNotification('Feedback received.', 'success');
                                       }}
-                                      className="px-4 py-3 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 text-left border-b last:border-none border-slate-100 transition-colors"
+                                      className="border-b border-slate-100 px-4 py-3 text-left text-xs font-medium text-slate-600 transition last:border-none hover:bg-slate-50"
                                     >
                                       {opt}
                                     </button>
@@ -1133,81 +1156,73 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                 </div>
               ))}
 
-              {/* 銝脫????＊蝷箇???摮?靘????銝准I?葉嚗?*/}
               {isThinking && aiStatus && (
-                <div className="flex justify-start items-start gap-3 animate-in fade-in slide-in-from-bottom-2 pl-[52px] mb-2">
-                  <div className="flex flex-col items-start gap-2">
-                    <div className="bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-full text-sm font-bold flex items-center gap-2.5 shadow-sm border border-emerald-200">
-                      <BrainCircuit size={16} className="animate-pulse" />
-                      <span className="tracking-tight">AI 分析中</span>
-                      <span className="flex gap-0.5 ml-1">
-                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-bounce"></span>
-                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-bounce delay-75"></span>
-                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-bounce delay-150"></span>
-                      </span>
-                    </div>
-                    <p className="text-xs font-semibold text-slate-500 pl-1">{aiStatus}</p>
+                <div className="pl-12">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                    <BrainCircuit size={14} className="animate-pulse" />
+                    <span>{aiStatus}</span>
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
 
         {pendingApproval && (
-          <div className="absolute inset-0 z-[70] bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center p-4">
-            <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-4">
+          <div className="absolute inset-0 z-[70] flex items-center justify-center bg-slate-900/30 p-4">
+            <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
               <div className="space-y-1">
-                <p className="text-xs uppercase tracking-widest text-emerald-600 font-bold">Approval Required</p>
-                <h3 className="text-xl font-extrabold text-slate-900">是否更新個人資料？</h3>
-                <p className="text-sm text-slate-600">{pendingApproval.prompt || 'AI 建議更新你的個人資料，請先確認是否同意。'}</p>
-                {approvalActionId && (
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Approval</p>
+                <h3 className="text-xl font-semibold text-slate-900">Confirm profile update</h3>
+                <p className="text-sm text-slate-600">
+                  {pendingApproval.prompt || 'Please review the suggested profile changes before continuing.'}
+                </p>
+                {approvalActionId ? (
                   <p className="text-xs text-slate-400">approval_id: {approvalActionId}</p>
-                )}
-                {!approvalActionId && (
-                  <p className="text-xs text-rose-500">缺少 approval_id，暫時無法送出。</p>
+                ) : (
+                  <p className="text-xs text-rose-500">approval_id is missing.</p>
                 )}
               </div>
 
               {pendingApproval.proposalItems?.length > 0 && (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 max-h-52 overflow-y-auto">
-                  <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3">proposal</p>
+                <div className="mt-4 max-h-52 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">proposal</p>
                   <div className="space-y-2">
                     {pendingApproval.proposalItems.map((item) => (
                       <div key={`${item.field}-${item.value}`} className="grid grid-cols-[98px_76px_1fr] gap-2 text-sm">
-                        <span className="font-semibold text-slate-700 break-words">{item.label}</span>
-                        <span className="text-slate-500 break-words">{item.actionLabel}</span>
-                        <span className="text-slate-600 break-words">{item.value}</span>
+                        <span className="break-words font-medium text-slate-700">{item.label}</span>
+                        <span className="break-words text-slate-500">{item.actionLabel}</span>
+                        <span className="break-words text-slate-600">{item.value}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-1">
+              <div className="mt-5 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => { setPendingApproval(null); latestApprovalIdRef.current = null; }}
                   disabled={isSubmittingApproval}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-500 font-semibold hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
                 >
-                  關閉
+                  Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApproveAction('reject')}
                   disabled={isSubmittingApproval || !approvalActionId}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-100 disabled:opacity-50"
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                 >
-                  拒絕
+                  Reject
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApproveAction('approve')}
                   disabled={isSubmittingApproval || !approvalActionId}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-50"
+                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
                 >
-                  {isSubmittingApproval ? '送出中...' : '同意更新'}
+                  {isSubmittingApproval ? 'Submitting...' : 'Approve'}
                 </button>
               </div>
             </div>
@@ -1215,20 +1230,21 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         )}
 
         {selectedImage && (
-          <div className="absolute bottom-[90px] sm:bottom-[110px] left-4 sm:left-10 z-40 animate-in slide-in-from-bottom-4">
-            <div className="relative p-2 bg-white rounded-2xl shadow-lg border border-slate-200">
-              <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 shadow-md hover:bg-rose-500 transition-colors">
+          <div className="absolute bottom-[92px] left-4 z-40 sm:bottom-[108px] sm:left-6">
+            <div className="relative rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-2 -right-2 rounded-full bg-slate-900 p-1 text-white transition hover:bg-rose-500"
+              >
                 <X size={14} />
               </button>
-              <img src={selectedImage} alt="Preview" className="h-20 w-20 object-cover rounded-xl border border-slate-100" />
+              <img src={selectedImage} alt="Preview" className="h-20 w-20 rounded-xl object-cover" />
             </div>
           </div>
         )}
 
-        {/* 頛詨? */}
-        <div className="p-4 sm:p-6 bg-white/70 backdrop-blur-lg border-t border-slate-100 shadow-[0_-10px_40px_-5px_rgba(0,0,0,0.03)] relative shrink-0 z-30 pb-5 sm:pb-7">
-          <form onSubmit={handleAsk} className="flex space-x-3 max-w-5xl mx-auto items-end relative">
-
+        <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
+          <form onSubmit={handleAsk} className="mx-auto flex max-w-3xl items-end gap-3">
             <input
               type="file"
               ref={fileInputRef}
@@ -1241,17 +1257,17 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isThinking || isRoomLoading || !activeRoomId}
-              className="p-4 h-[58px] w-[58px] bg-slate-100 text-slate-500 rounded-[20px] hover:bg-emerald-50 hover:text-emerald-600 border border-transparent hover:border-emerald-200 active:scale-95 transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-50"
+              className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
             >
-              <ImagePlus size={24} />
+              <ImagePlus size={22} />
             </button>
 
-            <div className="relative flex-1 group">
+            <div className="relative flex-1">
               <textarea
                 value={question}
                 onChange={handleQuestionChange}
                 maxLength={QUESTION_MAX_LENGTH}
-                placeholder="輸入你的飲食問題，讓 AI 幫你分析..."
+                placeholder="Ask anything about meals, calories, nutrition, or your diet plan..."
                 disabled={isThinking || isRoomLoading || !activeRoomId}
                 rows={Math.min(4, Math.max(1, question.split('\n').length))}
                 onKeyDown={(e) => {
@@ -1260,21 +1276,20 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                     handleAsk(e);
                   }
                 }}
-                className="w-full px-6 py-4 pr-12 border border-slate-200 rounded-[20px] focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none bg-white transition-all font-semibold text-slate-800 placeholder:text-slate-400 shadow-inner resize-none scrollbar-thin scrollbar-thumb-slate-100 text-base"
+                className="w-full resize-none rounded-[22px] border border-slate-200 bg-white px-5 py-3.5 pr-12 text-sm text-slate-800 outline-none transition focus:border-slate-300 focus:ring-4 focus:ring-slate-100 sm:text-[15px]"
               />
-              <BrainCircuit size={20} className="absolute right-5 bottom-4 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
+              <BrainCircuit size={18} className="absolute right-4 bottom-4 text-slate-300" />
             </div>
 
             <button
               type="submit"
               disabled={isThinking || isRoomLoading || (!question.trim() && !selectedImage) || !activeRoomId}
-              className="bg-gradient-to-b from-emerald-500 to-emerald-600 text-white p-4 h-[58px] w-[58px] rounded-[20px] hover:from-emerald-600 hover:to-emerald-700 active:scale-95 transition-all duration-300 disabled:opacity-40 shadow-lg shadow-emerald-200/70 border border-emerald-500 flex items-center justify-center shrink-0 active:shadow-inner"
+              className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white transition hover:bg-slate-800 disabled:opacity-40"
             >
-              <Send size={24} className={(question.trim() || selectedImage) && !isThinking ? 'animate-bounce' : ''} />
+              <Send size={20} />
             </button>
           </form>
         </div>
-
       </div>
     </div>
   );
