@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 TARGET_API_SERVER = os.environ.get(
-    "TARGET_API_SERVER", "http://120.110.113.111:3000"
+    "TARGET_API_SERVER", "https://daily-fezzed-larisa.ngrok-free.dev"
 ).rstrip("/")
 
 
@@ -18,12 +18,12 @@ def build_target_url(path: str) -> str:
 
 
 @app.route(
-    "/api/",
+    "/backend/",
     defaults={"path": ""},
     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
 )
 @app.route(
-    "/api/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    "/backend/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
 )
 def proxy(path):
     if request.method == "OPTIONS":

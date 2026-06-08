@@ -1,12 +1,8 @@
-const trimTrailingSlash = (value) => String(value || '').replace(/\/+$/, '');
-
 const normalizePath = (path) => {
   if (typeof path !== 'string' || !path.trim()) return '/';
   return path.startsWith('/') ? path : `/${path}`;
 };
 
-export const RUST_API_ORIGIN = trimTrailingSlash(
-  import.meta.env.VITE_RUST_API_ORIGIN || 'http://120.110.113.111:3000',
-);
+export const API_PROXY_BASE = '/backend';
 
-export const buildApiUrl = (path) => `${RUST_API_ORIGIN}${normalizePath(path)}`;
+export const buildApiUrl = (path) => `${API_PROXY_BASE}${normalizePath(path)}`;
