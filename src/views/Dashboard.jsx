@@ -178,15 +178,16 @@ const Dashboard = ({ user, apiFetch }) => {
 
       if (chatCheckResult.status === 'fulfilled') {
         const data = chatCheckResult.value || {};
-        const httpStatus = Number(data?.http_status) || 0;
+        const httpStatus = Number(data?.pingStatusCode ?? data?.http_status) || 0;
         const detailMessage =
           (typeof data?.error === 'string' && data.error.trim()) ||
           (typeof data?.message === 'string' && data.message.trim()) ||
+          (typeof data?.pingResponse === 'string' && data.pingResponse.trim()) ||
           (typeof data?.ping_response === 'string' && data.ping_response.trim()) ||
           '';
         const detail = [`HTTP ${httpStatus || 'N/A'}`, detailMessage].filter(Boolean).join(' | ');
 
-        if (data?.ok || (httpStatus >= 200 && httpStatus < 300)) {
+        if (data?.proxyChatAvailable === true || data?.pingOk === true || (httpStatus >= 200 && httpStatus < 300)) {
           setChatbotStatus({ tone: 'online', label: '運行中', detail: '' });
         } else {
           setChatbotStatus({ tone: 'offline', label: '離線', detail: detail || '無法連線到聊天機器人' });
@@ -201,11 +202,11 @@ const Dashboard = ({ user, apiFetch }) => {
 
       if (gemmaHealthResult.status === 'fulfilled') {
         const data = gemmaHealthResult.value || {};
-        const apiHttpStatus = Number(data?.status ?? data?.http_status ?? data?.httpStatusCode ?? 0);
+        const apiHttpStatus = Number(data?.httpStatusCode ?? data?.status ?? data?.http_status ?? 0);
         const detailMessage = typeof data?.message === 'string' ? data.message.trim() : '';
         const detail = [`HTTP ${apiHttpStatus || 'N/A'}`, detailMessage].filter(Boolean).join(' | ');
 
-        if (apiHttpStatus === 200) {
+        if (data?.running === true || apiHttpStatus === 200) {
           setGemmaStatus({ tone: 'online', label: '運行中', detail: '' });
         } else {
           setGemmaStatus({ tone: 'offline', label: '連線失敗', detail: detail || '無法連線到 gemma4 服務' });
