@@ -943,245 +943,181 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
   };
 
   const approvalActionId = normalizeApprovalId(pendingApproval?.approvalId) ?? latestApprovalIdRef.current ?? null;
-  const emptyStateSuggestions = [
-    '??????????????',
-    '168 ?????????????',
-    '?????????????????',
-    '???????????????',
-  ];
 
   return (
-    <div className="max-w-[1680px] mx-auto overflow-hidden flex h-[calc(100dvh-80px)] sm:h-[calc(100vh-140px)] relative w-[100vw] -mx-4 -mt-4 sm:w-auto sm:mx-0 sm:mt-0 z-30 font-sans antialiased rounded-none sm:rounded-[40px] border border-cyan-400/10 bg-[#06131d] shadow-[0_35px_120px_-30px_rgba(6,19,29,0.95)]" onClick={() => setReportingIdx(null)}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.22),_transparent_28%),radial-gradient(circle_at_80%_12%,_rgba(59,130,246,0.18),_transparent_22%),linear-gradient(145deg,_#07131e_0%,_#091826_52%,_#05111b_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(125,211,252,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(125,211,252,0.08)_1px,transparent_1px)] bg-[size:34px_34px] opacity-[0.08]" />
+    <div className="max-w-[1600px] mx-auto bg-[#f8fafc] sm:rounded-[36px] sm:shadow-[0_20px_70px_-10px_rgba(0,0,0,0.1)] sm:border border-slate-100 overflow-hidden flex h-[calc(100dvh-80px)] sm:h-[calc(100vh-140px)] relative w-[100vw] -mx-4 -mt-4 sm:w-auto sm:mx-0 sm:mt-0 z-30 font-sans antialiased" onClick={() => setReportingIdx(null)}>
       <BgPattern />
 
-      <div className={`absolute sm:relative z-50 h-full w-[300px] bg-slate-950/70 backdrop-blur-2xl border-r border-white/10 transform transition-transform duration-500 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'} flex flex-col`}>
-        <div className="p-5 border-b border-white/10 bg-white/5">
-          <div className="mb-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-cyan-300/70">AI Consult</p>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Nutrition Command</h2>
-            <p className="mt-1 text-sm text-slate-400">???????????</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleNewChat}
-              disabled={isRoomsLoading}
-              className="flex-1 rounded-2xl border border-cyan-300/40 bg-[linear-gradient(135deg,_rgba(34,211,238,0.92),_rgba(37,99,235,0.9))] px-5 py-3 text-sm font-bold text-slate-950 shadow-[0_12px_30px_-10px_rgba(34,211,238,0.7)] transition-all duration-300 hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <span className="inline-flex items-center justify-center gap-2">
-                <Plus size={18} />
-                ????
-              </span>
-            </button>
-            <button onClick={() => setIsSidebarOpen(false)} className="ml-3 rounded-2xl bg-white/8 p-2.5 text-slate-300 transition-colors hover:bg-white/14 hover:text-white sm:hidden">
-              <X size={20} />
-            </button>
-          </div>
+      {/* --- ?湧?甈??予摰文?銵剁? --- */}
+      <div className={`absolute sm:relative z-50 h-full w-[280px] bg-white/70 backdrop-blur-xl border-r border-slate-100 transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'} flex flex-col`}>
+        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white/40">
+          <button
+            onClick={handleNewChat}
+            disabled={isRoomsLoading}
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-5 rounded-full flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-md shadow-emerald-200/60 hover:shadow-lg hover:shadow-emerald-300/70 border border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600 disabled:hover:shadow-md"
+          >
+            <Plus size={18} />
+            <span className="text-sm tracking-tight">新增聊天室</span>
+          </button>
+          <button onClick={() => setIsSidebarOpen(false)} className="ml-3 sm:hidden p-2.5 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors">
+            <X size={20} />
+          </button>
         </div>
 
-        <div className="px-5 pt-4 pb-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.25em] text-slate-400">Rooms</p>
-              <p className="mt-2 text-2xl font-semibold text-white">{rooms.length}</p>
-            </div>
-            <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/8 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.25em] text-cyan-200/80">Status</p>
-              <p className="mt-2 text-sm font-semibold text-cyan-100">{isThinking ? 'Responding' : 'Online'}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-2.5 overflow-y-auto p-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-400/20">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
           {isRoomsLoading ? (
             Array.from({ length: 6 }).map((_, idx) => (
-              <div key={`room-skeleton-${idx}`} className="w-full rounded-[18px] border border-white/10 bg-white/5 p-3.5 animate-pulse">
+              <div key={`room-skeleton-${idx}`} className="w-full p-3.5 rounded-[16px] border border-slate-100 bg-white/80 animate-pulse">
                 <div className="flex items-center gap-3">
-                  <div className="h-4 w-4 rounded-md bg-slate-700"></div>
-                  <div className="h-3.5 w-full rounded-full bg-slate-700"></div>
+                  <div className="h-4 w-4 rounded-md bg-slate-200"></div>
+                  <div className="h-3.5 rounded-full bg-slate-200 w-full"></div>
                 </div>
               </div>
             ))
           ) : rooms.length === 0 ? (
-            <div className="py-8 text-center text-sm font-semibold text-slate-400">????????</div>
+            <div className="text-center text-sm font-semibold text-slate-400 py-8">目前沒有聊天室</div>
           ) : (
-            rooms.map((room) => (
+            rooms.map(room => (
               <button
                 key={room.id}
                 onClick={() => { setActiveRoomId(room.id); setIsSidebarOpen(false); }}
-                className={`relative flex w-full items-center gap-3 overflow-hidden rounded-[20px] border p-4 text-left text-sm font-semibold transition-all duration-300 ${activeRoomId === room.id ? 'border-cyan-300/25 bg-[linear-gradient(135deg,rgba(8,145,178,0.28),rgba(37,99,235,0.18))] text-white shadow-[0_18px_35px_-22px_rgba(56,189,248,0.95)]' : 'border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/12 hover:bg-white/[0.06]'}`}
+                className={`w-full text-left p-3.5 rounded-[16px] transition-all duration-300 font-bold text-sm truncate flex items-center gap-3 relative group overflow-hidden ${activeRoomId === room.id ? 'bg-emerald-50 text-emerald-800 shadow-inner' : 'bg-transparent text-slate-700 hover:bg-slate-100/70'}`}
               >
-                <div className={`absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-cyan-300/12 to-transparent transition-opacity duration-300 ${activeRoomId === room.id ? 'opacity-100' : 'opacity-0'}`}></div>
-                <MessageSquare size={17} className={activeRoomId === room.id ? 'text-cyan-200' : 'text-slate-500'} />
-                <div className="min-w-0 flex-1">
-                  <span className="block truncate tracking-tight">{room.title || '?????'}</span>
-                  <span className="mt-1 block text-[11px] uppercase tracking-[0.2em] text-slate-500">{room.isDraft ? 'Draft' : 'Thread'}</span>
-                </div>
+                <div className={`absolute left-0 top-0 h-full w-1 rounded-r-full bg-emerald-500 transition-transform duration-300 ${activeRoomId === room.id ? 'translate-x-0' : '-translate-x-full'}`}></div>
+                <MessageSquare size={17} className={activeRoomId === room.id ? 'text-emerald-500' : 'text-slate-400 group-hover:text-slate-500'} />
+                <span className="flex-1 truncate tracking-tight">{room.title || '新聊天室'}</span>
               </button>
             ))
           )}
         </div>
       </div>
 
-      {isSidebarOpen && <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-500 sm:hidden"></div>}
+      {isSidebarOpen && (
+        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 sm:hidden transition-opacity duration-500"></div>
+      )}
 
-      <div className="relative flex h-full w-full flex-1 flex-col bg-transparent">
-        <div className="relative z-20 shrink-0 border-b border-white/10 bg-slate-950/20 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-4 p-4 sm:p-5">
-            <div className="flex min-w-0 items-center">
-              <button onClick={() => setIsSidebarOpen(true)} className="mr-4 rounded-2xl bg-white/6 p-2.5 text-slate-200 transition-all hover:bg-white/12 sm:hidden">
-                <Menu size={22} />
-              </button>
+      {/* --- 銝餃摰孵?嚗?憭抵?蝒? --- */}
+      <div className="flex-1 flex flex-col h-full w-full relative bg-slate-50/50">
 
-              <div className="mr-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border border-cyan-300/30 bg-[linear-gradient(145deg,rgba(34,211,238,0.24),rgba(37,99,235,0.32))] text-cyan-100 shadow-[0_10px_40px_-15px_rgba(34,211,238,0.95)]">
-                <BotMessageSquare size={23} className="sm:h-6 sm:w-6" />
-              </div>
+        {/* ?璅???*/}
+        <div className="bg-white/80 backdrop-blur-md p-4 sm:p-5 text-white flex items-center shadow-sm border-b border-slate-100 relative z-20 shrink-0">
+          <button onClick={() => setIsSidebarOpen(true)} className="sm:hidden mr-4 p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all active:scale-95">
+            <Menu size={22} />
+          </button>
 
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-70"></span>
-                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-300"></span>
-                  </span>
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.35em] text-cyan-200/80">Live Channel</span>
-                </div>
-                <h2 className="mt-2 max-w-[56vw] truncate text-xl font-semibold tracking-tight text-white sm:max-w-[420px] sm:text-2xl">{activeRoomTitle}</h2>
-                <p className="mt-1 text-sm text-slate-400">Powered by Gemma4-e4b</p>
-              </div>
-            </div>
-
-            <div className="hidden items-center gap-3 md:flex">
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-right">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">Mode</p>
-                <p className="mt-1 text-sm font-semibold text-slate-100">Glass Ops</p>
-              </div>
-              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-right">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/80">State</p>
-                <p className="mt-1 text-sm font-semibold text-cyan-100">{isThinking ? 'Thinking' : 'Standby'}</p>
-              </div>
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-2.5 rounded-2xl text-white shadow-lg shadow-emerald-100 border border-emerald-400 mr-4 shrink-0">
+            <BotMessageSquare size={24} className="sm:w-7 sm:h-7" />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tighter text-slate-900 truncate max-w-[60vw] sm:max-w-[420px]">{activeRoomTitle}</h2>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Powered by Gemma4-e4b</span>
             </div>
           </div>
         </div>
 
-        <div ref={chatContainerRef} className="flex-1 overflow-y-auto overscroll-none px-4 py-5 sm:px-8 sm:py-8 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-400/15">
+        <div ref={chatContainerRef} className="flex-1 p-5 sm:p-9 overflow-y-auto overscroll-none scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent flex flex-col gap-9">
           {isRoomLoading ? (
-            <div className="m-auto flex h-full flex-col items-center justify-center px-4 text-center animate-in fade-in duration-300">
-              <div className="flex items-center gap-3 rounded-[28px] border border-cyan-300/18 bg-white/7 px-8 py-6 shadow-[0_25px_80px_-35px_rgba(34,211,238,0.85)] backdrop-blur-xl">
-                <Activity size={22} className="animate-spin text-cyan-300" />
-                <span className="font-bold tracking-tight text-slate-100">?????????...</span>
+            <div className="flex flex-col items-center justify-center h-full m-auto text-center px-4 animate-in fade-in duration-300">
+              <div className="bg-white px-8 py-6 rounded-3xl shadow-lg border border-slate-100 flex items-center gap-3">
+                <Activity size={22} className="text-emerald-500 animate-spin" />
+                <span className="font-bold text-slate-700 tracking-tight">載入聊天室內容中...</span>
               </div>
-              <p className="mt-4 text-sm font-medium text-slate-400">?????????????????</p>
+              <p className="text-slate-400 text-sm mt-4 font-medium">請稍候，系統正在載入聊天紀錄。</p>
             </div>
           ) : chatHistory.length === 0 ? (
-            <div className="mx-auto flex h-full w-full max-w-5xl flex-col justify-center animate-in fade-in duration-700">
-              <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                <div className="rounded-[34px] border border-white/10 bg-white/[0.05] p-8 shadow-[0_40px_120px_-45px_rgba(34,211,238,0.75)] backdrop-blur-2xl sm:p-10">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-cyan-200/75">Neural Nutrition Console</p>
-                  <div className="mt-6 flex items-center gap-4">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-[28px] border border-cyan-300/20 bg-[radial-gradient(circle_at_30%_30%,rgba(34,211,238,0.45),rgba(14,116,144,0.12)_60%,transparent_100%)] text-cyan-100">
-                      <BrainCircuit size={42} />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">???? AI ?????</h3>
-                      <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">?????????????????????????????????????????</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                    {emptyStateSuggestions.map((suggestion) => (
-                      <button key={suggestion} onClick={() => setQuestion(suggestion)} className="group rounded-[24px] border border-white/10 bg-slate-950/35 px-5 py-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-cyan-400/10">
-                        <div className="flex items-start gap-3">
-                          <Sparkles size={16} className="mt-1 text-cyan-300 transition-transform duration-300 group-hover:rotate-12" />
-                          <span className="text-sm font-medium tracking-tight text-slate-100 sm:text-base">{suggestion}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-[34px] border border-cyan-300/10 bg-slate-950/45 p-6 backdrop-blur-2xl">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-cyan-200/75">System Snapshot</p>
-                  <div className="mt-5 space-y-4">
-                    <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
-                      <p className="text-sm text-slate-400">??????</p>
-                      <p className="mt-2 text-lg font-semibold text-white">????????????????</p>
-                    </div>
-                    <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
-                      <p className="text-sm text-slate-400">????</p>
-                      <p className="mt-2 text-lg font-semibold text-white">??????????Markdown ??????</p>
-                    </div>
-                    <div className="rounded-[24px] border border-cyan-300/15 bg-cyan-400/8 p-5">
-                      <p className="text-sm text-cyan-100/75">????</p>
-                      <p className="mt-2 text-lg font-semibold text-cyan-50">?????????</p>
-                    </div>
-                  </div>
-                </div>
+            <div className="flex flex-col items-center justify-center h-full m-auto text-center px-4 animate-in fade-in duration-700">
+              <div className="bg-white p-8 rounded-[40px] shadow-xl shadow-slate-100/50 mb-8 border border-slate-50 transform hover:scale-105 transition-transform duration-300">
+                <BrainCircuit size={60} className="text-emerald-500" />
+              </div>
+              <h3 className="font-extrabold text-slate-900 text-2xl sm:text-3xl tracking-tighter mb-4">歡迎使用 AI 飲食顧問</h3>
+              <p className="text-slate-500 font-medium text-base sm:text-lg mb-10 max-w-lg leading-relaxed">輸入你的問題，AI 會依照你的目標提供飲食建議。</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+                {[
+                  '今天該吃什麼比較健康？',
+                  '我身高 168，幫我估算每日熱量',
+                  '想減脂，晚餐可以怎麼吃？',
+                  '幫我安排一週飲食建議',
+                ].map((suggestion) => (
+                  <button key={suggestion} onClick={() => setQuestion(suggestion)} className="text-left text-sm sm:text-base bg-white/70 hover:bg-white px-6 py-4 rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 hover:shadow-emerald-50 hover:shadow-lg transition-all duration-300 font-semibold text-slate-700 flex items-center gap-2 group active:scale-95">
+                    <Sparkles size={16} className="text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="tracking-tight">{suggestion}</span>
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+            <>
               {chatHistory.map((msg, idx) => (
-                <div key={idx} className="space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                <div key={idx} className={`space-y-3 animate-in fade-in slide-in-from-bottom-3 duration-500`}>
                   {msg.role === 'user' ? (
-                    <div className="flex items-start justify-end gap-3">
-                      <div className="flex max-w-[88%] flex-col items-end gap-2 sm:max-w-[72%]">
-                        {msg.image && <img src={msg.image} alt="User Upload" className="max-w-[200px] rounded-[24px] border border-cyan-300/20 object-cover shadow-[0_18px_60px_-26px_rgba(56,189,248,0.9)] sm:max-w-[300px]" />}
-                        {msg.content && msg.content !== '(???)' && (
-                          <div className="rounded-[28px] rounded-br-[8px] border border-cyan-200/50 bg-[linear-gradient(135deg,rgba(34,211,238,0.95),rgba(37,99,235,0.95))] px-6 py-4 text-base font-semibold leading-relaxed tracking-tight text-slate-950 shadow-[0_26px_70px_-30px_rgba(34,211,238,0.95)]">
+                    <div className="flex justify-end items-start gap-3">
+                      <div className="flex flex-col items-end gap-1.5 max-w-[85%] sm:max-w-[75%]">
+                        {msg.image && (
+                          <img src={msg.image} alt="User Upload" className="max-w-[200px] sm:max-w-[300px] rounded-2xl shadow-md border-2 border-slate-100 object-cover" />
+                        )}
+                        {msg.content && msg.content !== '(圖片)' && (
+                          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white px-6 py-4 rounded-[26px] rounded-br-none shadow-lg shadow-emerald-100 border border-emerald-400/50 font-semibold leading-relaxed text-base tracking-tight shadow-inner">
                             {msg.content}
                           </div>
                         )}
                       </div>
-                      <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/25 bg-white/8 text-cyan-100">
-                        <UserCircle size={22} />
-                      </div>
+                      <UserCircle size={36} className="text-slate-300 mt-1 shrink-0" />
                     </div>
                   ) : (
-                    <div className="group relative flex items-start justify-start gap-3">
-                      <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/25 bg-[linear-gradient(145deg,rgba(34,211,238,0.18),rgba(37,99,235,0.24))] text-cyan-100 shadow-[0_14px_36px_-18px_rgba(34,211,238,0.95)]">
+                    <div className="flex justify-start items-start gap-3 group relative">
+                      <div className="bg-emerald-600 p-2.5 rounded-2xl text-white shadow-lg shadow-emerald-100 border-2 border-emerald-400 shrink-0 mt-1">
                         <BotMessageSquare size={18} />
                       </div>
-                      <div className="flex max-w-[92%] flex-col gap-2 sm:max-w-[84%]">
-                        {msg.image && <img src={msg.image} alt="AI Attachment" className="max-w-[220px] rounded-[24px] border border-cyan-300/20 object-cover shadow-[0_18px_60px_-26px_rgba(56,189,248,0.9)] sm:max-w-[320px]" />}
-                        <div className="relative rounded-[30px] rounded-tl-[10px] border border-white/10 bg-white/[0.06] px-6 py-5 text-base font-medium leading-relaxed text-slate-100 shadow-[0_35px_80px_-50px_rgba(34,211,238,0.9)] backdrop-blur-xl">
-                          {!msg.content || msg.content === '' ? (
-                            <span className="flex items-center gap-2 font-semibold text-cyan-200">
-                              <span className="inline-block h-2.5 w-2.5 rounded-full bg-cyan-300 animate-pulse"></span>
-                              <span>{aiStatus || 'AI ??????...'}</span>
+                      <div className="flex flex-col gap-2 max-w-[90%] sm:max-w-[85%]">
+                        {msg.image && (
+                          <img src={msg.image} alt="AI Attachment" className="max-w-[220px] sm:max-w-[320px] rounded-2xl shadow-md border-2 border-slate-100 object-cover" />
+                        )}
+                        <div className="bg-white border border-slate-100 text-slate-800 px-6 py-5 rounded-[28px] rounded-tl-none shadow-soft shadow-slate-100/50 leading-relaxed font-medium text-base relative shadow-lg">
+                          {!msg.content || msg.content === "" ? (
+                            <span className="flex items-center gap-2 text-emerald-600 font-semibold">
+                              <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              <span>{aiStatus || 'AI 思考中...'}</span>
                             </span>
                           ) : (
-                            <div className="prose prose-invert max-w-none leading-relaxed tracking-tight prose-headings:border-b prose-headings:border-white/10 prose-headings:pb-2 prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-white prose-p:text-slate-200 prose-li:text-slate-200 prose-a:text-cyan-300 prose-strong:text-white prose-code:rounded-md prose-code:bg-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-cyan-200 prose-pre:bg-slate-950/80 prose-pre:text-slate-50 prose-th:border prose-th:border-white/10 prose-th:bg-white/5 prose-th:p-3 prose-td:border prose-td:border-white/10 prose-td:p-3 sm:prose-lg">
-                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            // ?舀 Markdown嚗銵冽嚗? LaTeX ?批捆皜脫?
+                            <div className="prose prose-slate sm:prose-lg max-w-none prose-headings:border-b prose-headings:pb-2 prose-headings:font-extrabold prose-headings:tracking-tighter prose-headings:text-slate-900 prose-a:text-blue-600 prose-strong:font-bold prose-strong:text-slate-900 prose-table:border-collapse prose-table:w-full prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:p-3 prose-td:border prose-td:border-slate-300 prose-td:p-3 prose-code:bg-slate-100 prose-code:text-rose-600 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-pre:bg-slate-800 prose-pre:text-slate-50 leading-relaxed tracking-tight text-slate-800">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm, remarkMath]}
+                                rehypePlugins={[rehypeKatex]}
+                              >
                                 {String(msg.content)}
                               </ReactMarkdown>
                             </div>
                           )}
                         </div>
 
-                        {!isThinking && msg.content !== '' && (
+                        {!isThinking && msg.content !== "" && (
                           <div className="relative self-start ml-2">
                             <button
                               onClick={(e) => { e.stopPropagation(); setReportingIdx(reportingIdx === idx ? null : idx); }}
-                              className={`flex items-center gap-1.5 text-xs transition-all duration-300 active:scale-95 ${reportingIdx === idx ? 'text-rose-300' : 'text-slate-500 opacity-0 hover:text-rose-300 group-hover:opacity-100'}`}
+                              className={`flex items-center gap-1.5 transition-all duration-300 active:scale-95 ${reportingIdx === idx ? 'text-rose-500' : 'text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100'}`}
                             >
                               <Flag size={12} />
-                              <span className="text-[11px] font-bold uppercase tracking-widest">??</span>
+                              <span className="text-[11px] font-bold uppercase tracking-widest">回報</span>
                             </button>
 
                             {reportingIdx === idx && (
-                              <div className="absolute left-0 bottom-full z-50 mb-2 w-48 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/95 shadow-xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200" onClick={(e) => e.stopPropagation()}>
-                                <div className="border-b border-white/10 bg-white/5 p-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400">????</div>
+                              <div className="absolute left-0 bottom-full mb-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200" onClick={(e) => e.stopPropagation()}>
+                                <div className="p-2 bg-slate-50 border-b border-slate-100 text-slate-500 text-[10px] font-bold text-center uppercase tracking-wider">回報原因</div>
                                 <div className="flex flex-col">
-                                  {['?????', '??????', '????', '????'].map((opt) => (
+                                  {['內容不正確', '建議不適合', '語氣不佳', '其他問題'].map((opt) => (
                                     <button
                                       key={opt}
                                       onClick={() => {
                                         setReportingIdx(null);
-                                        showNotification('???????????', 'success');
+                                        showNotification('已收到你的回報，感謝。', 'success');
                                       }}
-                                      className="border-b border-white/10 px-4 py-3 text-left text-xs font-bold text-slate-300 transition-colors last:border-none hover:bg-rose-400/10 hover:text-rose-200"
+                                      className="px-4 py-3 text-xs font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-600 text-left border-b last:border-none border-slate-100 transition-colors"
                                     >
                                       {opt}
                                     </button>
@@ -1197,45 +1133,51 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                 </div>
               ))}
 
+              {/* 銝脫????＊蝷箇???摮?靘????銝准I?葉嚗?*/}
               {isThinking && aiStatus && (
-                <div className="mb-2 flex items-start justify-start gap-3 pl-[52px] animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex justify-start items-start gap-3 animate-in fade-in slide-in-from-bottom-2 pl-[52px] mb-2">
                   <div className="flex flex-col items-start gap-2">
-                    <div className="flex items-center gap-2.5 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2.5 text-sm font-bold text-cyan-100 backdrop-blur-xl">
+                    <div className="bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-full text-sm font-bold flex items-center gap-2.5 shadow-sm border border-emerald-200">
                       <BrainCircuit size={16} className="animate-pulse" />
-                      <span className="tracking-tight">AI ???</span>
-                      <span className="ml-1 flex gap-0.5">
-                        <span className="h-1 w-1 rounded-full bg-cyan-300 animate-bounce"></span>
-                        <span className="h-1 w-1 rounded-full bg-cyan-300 animate-bounce delay-75"></span>
-                        <span className="h-1 w-1 rounded-full bg-cyan-300 animate-bounce delay-150"></span>
+                      <span className="tracking-tight">AI 分析中</span>
+                      <span className="flex gap-0.5 ml-1">
+                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-bounce"></span>
+                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-bounce delay-75"></span>
+                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-bounce delay-150"></span>
                       </span>
                     </div>
-                    <p className="pl-1 text-xs font-semibold text-slate-400">{aiStatus}</p>
+                    <p className="text-xs font-semibold text-slate-500 pl-1">{aiStatus}</p>
                   </div>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
 
         {pendingApproval && (
-          <div className="absolute inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-[6px]">
-            <div className="w-full max-w-lg space-y-4 rounded-3xl border border-white/10 bg-slate-950/85 p-6 shadow-2xl backdrop-blur-2xl">
+          <div className="absolute inset-0 z-[70] bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+            <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 space-y-4">
               <div className="space-y-1">
-                <p className="text-xs font-bold uppercase tracking-widest text-cyan-300">Approval Required</p>
-                <h3 className="text-xl font-extrabold text-white">?????????</h3>
-                <p className="text-sm text-slate-300">{pendingApproval.prompt || 'AI ???????????????????????'}</p>
-                {approvalActionId ? <p className="text-xs text-slate-500">approval_id: {approvalActionId}</p> : <p className="text-xs text-rose-300">?? approval_id??????????</p>}
+                <p className="text-xs uppercase tracking-widest text-emerald-600 font-bold">Approval Required</p>
+                <h3 className="text-xl font-extrabold text-slate-900">是否更新個人資料？</h3>
+                <p className="text-sm text-slate-600">{pendingApproval.prompt || 'AI 建議更新你的個人資料，請先確認是否同意。'}</p>
+                {approvalActionId && (
+                  <p className="text-xs text-slate-400">approval_id: {approvalActionId}</p>
+                )}
+                {!approvalActionId && (
+                  <p className="text-xs text-rose-500">缺少 approval_id，暫時無法送出。</p>
+                )}
               </div>
 
               {pendingApproval.proposalItems?.length > 0 && (
-                <div className="max-h-52 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">proposal</p>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 max-h-52 overflow-y-auto">
+                  <p className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3">proposal</p>
                   <div className="space-y-2">
                     {pendingApproval.proposalItems.map((item) => (
                       <div key={`${item.field}-${item.value}`} className="grid grid-cols-[98px_76px_1fr] gap-2 text-sm">
-                        <span className="break-words font-semibold text-slate-100">{item.label}</span>
-                        <span className="break-words text-slate-400">{item.actionLabel}</span>
-                        <span className="break-words text-slate-300">{item.value}</span>
+                        <span className="font-semibold text-slate-700 break-words">{item.label}</span>
+                        <span className="text-slate-500 break-words">{item.actionLabel}</span>
+                        <span className="text-slate-600 break-words">{item.value}</span>
                       </div>
                     ))}
                   </div>
@@ -1247,25 +1189,25 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                   type="button"
                   onClick={() => { setPendingApproval(null); latestApprovalIdRef.current = null; }}
                   disabled={isSubmittingApproval}
-                  className="rounded-xl border border-white/10 px-4 py-2 font-semibold text-slate-300 hover:bg-white/5 disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-500 font-semibold hover:bg-slate-50 disabled:opacity-50"
                 >
-                  ??
+                  關閉
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApproveAction('reject')}
                   disabled={isSubmittingApproval || !approvalActionId}
-                  className="rounded-xl border border-white/10 px-4 py-2 font-semibold text-slate-100 hover:bg-white/5 disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-100 disabled:opacity-50"
                 >
-                  ??
+                  拒絕
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApproveAction('approve')}
                   disabled={isSubmittingApproval || !approvalActionId}
-                  className="rounded-xl bg-[linear-gradient(135deg,_rgba(34,211,238,0.95),_rgba(37,99,235,0.95))] px-4 py-2 font-semibold text-slate-950 hover:brightness-110 disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {isSubmittingApproval ? '???...' : '????'}
+                  {isSubmittingApproval ? '送出中...' : '同意更新'}
                 </button>
               </div>
             </div>
@@ -1273,18 +1215,20 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         )}
 
         {selectedImage && (
-          <div className="absolute bottom-[110px] left-4 z-40 animate-in slide-in-from-bottom-4 sm:bottom-[126px] sm:left-10">
-            <div className="relative rounded-3xl border border-cyan-300/15 bg-slate-950/85 p-2 shadow-[0_25px_80px_-30px_rgba(34,211,238,0.75)] backdrop-blur-2xl">
-              <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 rounded-full bg-slate-900 p-1 text-white shadow-md transition-colors hover:bg-rose-500">
+          <div className="absolute bottom-[90px] sm:bottom-[110px] left-4 sm:left-10 z-40 animate-in slide-in-from-bottom-4">
+            <div className="relative p-2 bg-white rounded-2xl shadow-lg border border-slate-200">
+              <button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full p-1 shadow-md hover:bg-rose-500 transition-colors">
                 <X size={14} />
               </button>
-              <img src={selectedImage} alt="Preview" className="h-20 w-20 rounded-2xl border border-cyan-300/15 object-cover" />
+              <img src={selectedImage} alt="Preview" className="h-20 w-20 object-cover rounded-xl border border-slate-100" />
             </div>
           </div>
         )}
 
-        <div className="relative z-30 shrink-0 border-t border-white/10 bg-slate-950/20 p-4 pb-5 backdrop-blur-2xl sm:p-6 sm:pb-7">
-          <form onSubmit={handleAsk} className="mx-auto flex max-w-5xl items-end gap-3 rounded-[30px] border border-white/10 bg-white/[0.05] px-3 py-3 shadow-[0_-10px_45px_-25px_rgba(34,211,238,0.8)] backdrop-blur-2xl">
+        {/* 頛詨? */}
+        <div className="p-4 sm:p-6 bg-white/70 backdrop-blur-lg border-t border-slate-100 shadow-[0_-10px_40px_-5px_rgba(0,0,0,0.03)] relative shrink-0 z-30 pb-5 sm:pb-7">
+          <form onSubmit={handleAsk} className="flex space-x-3 max-w-5xl mx-auto items-end relative">
+
             <input
               type="file"
               ref={fileInputRef}
@@ -1297,17 +1241,17 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isThinking || isRoomLoading || !activeRoomId}
-              className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-white/6 text-slate-300 transition-all duration-300 hover:border-cyan-300/20 hover:bg-cyan-400/10 hover:text-cyan-100 active:scale-95 disabled:opacity-50"
+              className="p-4 h-[58px] w-[58px] bg-slate-100 text-slate-500 rounded-[20px] hover:bg-emerald-50 hover:text-emerald-600 border border-transparent hover:border-emerald-200 active:scale-95 transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-50"
             >
               <ImagePlus size={24} />
             </button>
 
-            <div className="group relative flex-1">
+            <div className="relative flex-1 group">
               <textarea
                 value={question}
                 onChange={handleQuestionChange}
                 maxLength={QUESTION_MAX_LENGTH}
-                placeholder="?????????? AI ????..."
+                placeholder="輸入你的飲食問題，讓 AI 幫你分析..."
                 disabled={isThinking || isRoomLoading || !activeRoomId}
                 rows={Math.min(4, Math.max(1, question.split('\n').length))}
                 onKeyDown={(e) => {
@@ -1316,20 +1260,21 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                     handleAsk(e);
                   }
                 }}
-                className="w-full resize-none rounded-[22px] border border-white/10 bg-slate-950/35 px-6 py-4 pr-12 text-base font-medium text-slate-100 placeholder:text-slate-500 outline-none transition-all focus:border-cyan-300/30 focus:ring-4 focus:ring-cyan-400/10 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-cyan-400/15"
+                className="w-full px-6 py-4 pr-12 border border-slate-200 rounded-[20px] focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none bg-white transition-all font-semibold text-slate-800 placeholder:text-slate-400 shadow-inner resize-none scrollbar-thin scrollbar-thumb-slate-100 text-base"
               />
-              <BrainCircuit size={20} className="absolute right-5 bottom-4 text-slate-500 transition-colors group-focus-within:text-cyan-300" />
+              <BrainCircuit size={20} className="absolute right-5 bottom-4 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
             </div>
 
             <button
               type="submit"
               disabled={isThinking || isRoomLoading || (!question.trim() && !selectedImage) || !activeRoomId}
-              className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[20px] border border-cyan-200/40 bg-[linear-gradient(135deg,_rgba(34,211,238,0.98),_rgba(37,99,235,0.98))] text-slate-950 shadow-[0_18px_45px_-18px_rgba(34,211,238,0.95)] transition-all duration-300 hover:brightness-110 active:scale-95 disabled:opacity-40"
+              className="bg-gradient-to-b from-emerald-500 to-emerald-600 text-white p-4 h-[58px] w-[58px] rounded-[20px] hover:from-emerald-600 hover:to-emerald-700 active:scale-95 transition-all duration-300 disabled:opacity-40 shadow-lg shadow-emerald-200/70 border border-emerald-500 flex items-center justify-center shrink-0 active:shadow-inner"
             >
-              <Send size={24} className={(question.trim() || selectedImage) && !isThinking ? 'animate-pulse' : ''} />
+              <Send size={24} className={(question.trim() || selectedImage) && !isThinking ? 'animate-bounce' : ''} />
             </button>
           </form>
         </div>
+
       </div>
     </div>
   );
