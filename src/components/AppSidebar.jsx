@@ -7,6 +7,7 @@ import {
   Users,
   BookOpen,
   Search,
+  Share2,
   Settings,
   LogOut,
   Shield,
@@ -34,6 +35,7 @@ const mainMenu = [
   { title: '飲食分析', url: '/diet', icon: Camera },
   { title: '衛教新聞', url: '/news', icon: Newspaper },
   { title: '知識搜尋', url: '/knowledge-search', icon: Search },
+  { title: '知識圖譜', url: '/knowledge-graph', icon: Share2 },
   { title: '團隊資訊', url: '/member', icon: Users },
   { title: 'API 文件', url: '/api', icon: BookOpen },
 ];

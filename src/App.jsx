@@ -15,6 +15,7 @@ import RegisterView from './views/RegisterView';
 import NewsListView from './views/NewsListView';
 import NewsDetailView from './views/NewsDetailView';
 import KnowledgeSearchView from './views/KnowledgeSearchView';
+import KnowledgeGraphView from './views/KnowledgeGraphView';
 import AdminHome from './views/admin/AdminHome';
 import AdminUsersView from './views/admin/AdminUsersView';
 import AdminRouteControlsView from './views/admin/AdminRouteControlsView';
@@ -234,6 +235,7 @@ export default function App() {
             <Route path="/news" element={<NewsListView apiFetch={apiFetch} role={role} />} />
             <Route path="/news/:id" element={<NewsDetailView apiFetch={apiFetch} />} />
             <Route path="/knowledge-search" element={<KnowledgeSearchView apiFetch={apiFetch} />} />
+            <Route path="/knowledge-graph" element={<KnowledgeGraphView apiFetch={apiFetch} />} />
             <Route path="/api" element={<ApiDocs />} />
             <Route path="/privacy" element={<Privacy />} />
 

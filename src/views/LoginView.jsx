@@ -51,7 +51,7 @@ const LoginView = ({ apiFetch, setToken, showNotification }) => {
           </div>
         </div>
 
-        <h1 className="mb-5 text-2xl font-extrabold text-slate-900">Healthy Diet Login</h1>
+        <h1 className="mb-5 text-center text-2xl font-extrabold text-slate-900">Healthy Diet Login</h1>
 
         {error ? (
           <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
