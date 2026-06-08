@@ -36,7 +36,7 @@ export default function Layout({ user, token, handleLogout, notification, mainte
   useEffect(() => {
     const fetchAnnouncement = async () => {
       try {
-        const response = await fetch('/api/announcements/current');
+        const response = await fetch('/proxy/api/announcements/current');
         if (!response.ok) return;
         const data = await response.json();
         setAnnouncement(normalizeAnnouncement(data));

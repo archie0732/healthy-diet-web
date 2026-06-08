@@ -30,13 +30,13 @@ import {
   persistAuthSession,
 } from '@/lib/authSession';
 
-const API_BASE = '/api';
+const API_BASE = '/proxy';
 const AUTH_LOGIN_NONCE_KEY = 'authLoginNonce';
 const AUTH_EXCLUDE_LOGOUT_ENDPOINTS = new Set([
   '/auth/login',
   '/auth/register',
   '/auth/admin/login',
-  '/auth/refresh',
+  '/api/auth/refresh',
 ]);
 
 const RequireAdmin = ({ token, role, children }) => {
@@ -143,7 +143,7 @@ export default function App() {
 
   const fetchProfile = async () => {
     try {
-      const data = await apiFetch('/user/profile');
+      const data = await apiFetch('/api/user/profile');
       if (!data?.role && role) data.role = role;
       setUser(data);
     } catch (err) {
@@ -157,7 +157,7 @@ export default function App() {
       if (!token) return;
 
       try {
-        const res = await fetch(`${API_BASE}/record`, {
+        const res = await fetch(`${API_BASE}/api/record`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

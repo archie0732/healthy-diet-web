@@ -50,7 +50,7 @@ const Profile = ({ user, apiFetch, showNotification, fetchProfile, handleLogout 
     };
 
     try {
-      await apiFetch('/user/profile', { method: 'PUT', body: JSON.stringify(payload) });
+      await apiFetch('/api/user/profile', { method: 'PUT', body: JSON.stringify(payload) });
       showNotification('資料更新成功！');
       fetchProfile();
     } catch (err) {

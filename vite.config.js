@@ -14,10 +14,10 @@ export default defineConfig({
   server: {
     port: 8080,
     proxy: {
-      '/api': {
+      '/proxy': {
         target: 'http://120.110.113.111:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '') // 把 /api 拔掉再送給 Rust
+        rewrite: (path) => path.replace(/^\/proxy/, '')
       }
     }
   }

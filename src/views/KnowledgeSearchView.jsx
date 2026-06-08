@@ -67,9 +67,9 @@ const KnowledgeSearchView = ({ apiFetch }) => {
       const response =
         mode === 'quick'
           ? await apiFetch(
-              `/rag/search?query=${encodeURIComponent(nextQuery)}&top_k=${nextTopK}&force_refresh=${forceRefresh}`,
+              `/api/rag/search?query=${encodeURIComponent(nextQuery)}&top_k=${nextTopK}&force_refresh=${forceRefresh}`,
             )
-          : await apiFetch('/rag/search', {
+          : await apiFetch('/api/rag/search', {
               method: 'POST',
               body: JSON.stringify({
                 query: nextQuery,

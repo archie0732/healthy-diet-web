@@ -198,7 +198,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
   };
 
   const fetchRoomsFromServer = async () => {
-    const endpoints = ['/chat_room_titles', '/chat_rooms'];
+    const endpoints = ['/api/chat_room_titles', '/api/chat_rooms'];
     let lastError = null;
 
     for (const endpoint of endpoints) {
@@ -219,7 +219,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
   const fetchRoomHistory = async (roomId) => {
     if (!roomId) return [];
-    const data = await apiFetch(`/room_history/${roomId}`);
+    const data = await apiFetch(`/api/room_history/${roomId}`);
     return normalizeHistory(data);
   };
 
@@ -605,7 +605,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       const approvalId = normalizeApprovalId(pendingApproval.approvalId) ?? latestApprovalIdRef.current ?? null;
       if (!approvalId) throw new Error('缺少 approval_id，無法送出同意或拒絕。');
 
-      const response = await fetch('/api/approve', {
+      const response = await fetch('/proxy/api/approve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -742,7 +742,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         payload.thread_id = knownThreadId;
       }
 
-      const requestCandidates = ['/api/chat'];
+      const requestCandidates = ['/proxy/api/chat'];
       let response = null;
       let lastError = null;
 

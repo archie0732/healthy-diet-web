@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import yaml from 'js-yaml';
 
-export const OPENAPI_PROXY_PATH = '/api/openapi.yml';
+export const OPENAPI_PROXY_PATH = '/proxy/openapi.yml';
 
 const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete'];
 const DEFAULT_RAG_CAPABILITIES = Object.freeze({
@@ -229,7 +229,7 @@ const buildNotes = (capabilities) => [
 ];
 
 const normalizeServerUrls = (servers) => [
-  { label: 'Frontend proxy', value: '/api', tone: 'emerald' },
+  { label: 'Frontend proxy', value: '/proxy', tone: 'emerald' },
   ...(Array.isArray(servers)
     ? servers.map((server, index) => ({
         label: server?.description || `Server ${index + 1}`,

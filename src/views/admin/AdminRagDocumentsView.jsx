@@ -162,8 +162,8 @@ const AdminRagDocumentsView = ({ apiFetch }) => {
   };
 
   const selectedData = selectedDoc || selectedSummary;
-  const fileUrl = selectedData?.fileUrl || (selectedId ? `/api/admin/rag/documents/${selectedId}/file` : '');
-  const previewUrl = selectedData?.previewUrl || (selectedId ? `/api/admin/rag/documents/${selectedId}/preview` : '');
+  const fileUrl = selectedData?.fileUrl || (selectedId ? `/proxy/admin/rag/documents/${selectedId}/file` : '');
+  const previewUrl = selectedData?.previewUrl || (selectedId ? `/proxy/admin/rag/documents/${selectedId}/preview` : '');
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">

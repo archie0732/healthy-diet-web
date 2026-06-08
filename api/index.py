@@ -18,12 +18,12 @@ def build_target_url(path: str) -> str:
 
 
 @app.route(
-    "/api/",
+    "/proxy/",
     defaults={"path": ""},
     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
 )
 @app.route(
-    "/api/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    "/proxy/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
 )
 def proxy(path):
     if request.method == "OPTIONS":

@@ -79,7 +79,7 @@ const Diet = ({ apiFetch, showNotification }) => {
 
   const fetchHistory = async () => {
     try {
-      const data = await apiFetch('/diet_record', { method: 'GET' });
+      const data = await apiFetch('/api/diet_record', { method: 'GET' });
       if (Array.isArray(data)) setRecords(data);
     } catch (err) {
       console.error("無法取得歷史紀錄", err);
@@ -101,7 +101,7 @@ const Diet = ({ apiFetch, showNotification }) => {
       const file = new File([blob], "test1.jpg", { type: "image/jpeg" });
       const formData = new FormData();
       formData.append('image', file);
-      const data = await apiFetch('/diet', { method: 'POST', body: formData });
+      const data = await apiFetch('/api/diet', { method: 'POST', body: formData });
       setResult(data);
       showNotification('測試圖片分析完成！');
       fetchHistory();
@@ -129,7 +129,7 @@ const Diet = ({ apiFetch, showNotification }) => {
       const compressedBlob = await compressImage(selectedFile);
       const formData = new FormData();
       formData.append('image', compressedBlob, 'upload.jpg');
-      const data = await apiFetch('/diet', { method: 'POST', body: formData });
+      const data = await apiFetch('/api/diet', { method: 'POST', body: formData });
       setResult(data);
       showNotification('分析完成！');
       fetchHistory();
@@ -156,7 +156,7 @@ const Diet = ({ apiFetch, showNotification }) => {
     if (tab === 'image' && imageFetchStatus === 'idle' && selectedChatRecord?.id) {
       setImageFetchStatus('loading');
       try {
-        const res = await apiFetch(`/diet_image`, {
+        const res = await apiFetch(`/api/diet_image`, {
           method: 'POST',
           body: JSON.stringify({ record_id: selectedChatRecord.id })
         });

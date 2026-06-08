@@ -41,7 +41,7 @@ const NewsListView = ({ apiFetch, role }) => {
       setError('');
 
       try {
-        const response = await apiFetch(`/news?page=${page}&pageSize=${PAGE_SIZE}`);
+        const response = await apiFetch(`/api/news?page=${page}&pageSize=${PAGE_SIZE}`);
         if (cancelled) return;
 
         setData({

@@ -25,7 +25,7 @@ const NewsDetailView = ({ apiFetch }) => {
       setError('');
 
       try {
-        const response = await apiFetch(`/news/${id}`);
+        const response = await apiFetch(`/api/news/${id}`);
         if (cancelled) return;
 
         if (response?.ok === false && NOT_FOUND_ERRORS.has(response?.error)) {

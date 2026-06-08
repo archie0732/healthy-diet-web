@@ -14,7 +14,7 @@ const AdminNewsToolsView = ({ apiFetch, showNotification }) => {
     setError('');
 
     try {
-      const response = await apiFetch('/news-files');
+      const response = await apiFetch('/api/news-files');
       setFiles(Array.isArray(response?.files) ? response.files : []);
     } catch (err) {
       setError(err?.message || '無法讀取 news-files');
@@ -32,7 +32,7 @@ const AdminNewsToolsView = ({ apiFetch, showNotification }) => {
     setError('');
 
     try {
-      const response = await apiFetch('/news/sync', { method: 'POST' });
+      const response = await apiFetch('/api/news/sync', { method: 'POST' });
       setSyncResult(response || null);
       showNotification?.(
         `Sync complete: ${response?.newCount ?? 0} new, ${response?.updatedCount ?? 0} updated`,

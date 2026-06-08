@@ -89,7 +89,7 @@ const Dashboard = ({ user, apiFetch }) => {
   const [announcementSeenKey, setAnnouncementSeenKey] = useState('');
 
   const fetchAnnouncementForDashboard = async () => {
-    const endpoints = ['/api/announcements/current'];
+    const endpoints = ['/proxy/api/announcements/current'];
     const token = localStorage.getItem('token');
     const loginNonce = sessionStorage.getItem('authLoginNonce') || 'default';
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -125,7 +125,7 @@ const Dashboard = ({ user, apiFetch }) => {
       const chatCheckRequest = async () => {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const response = await fetch('/api/chat_check', { headers });
+        const response = await fetch('/proxy/api/chat_check', { headers });
         const rawText = await response.text();
         let data = {};
 
@@ -143,7 +143,7 @@ const Dashboard = ({ user, apiFetch }) => {
       const gemmaHealthRequest = async () => {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const response = await fetch('/api/gemma4/health', { headers });
+        const response = await fetch('/proxy/api/gemma4/health', { headers });
         const rawText = await response.text();
         let data = {};
 
@@ -161,8 +161,8 @@ const Dashboard = ({ user, apiFetch }) => {
       };
 
       const [dietResult, statsResult, chatCheckResult, gemmaHealthResult] = await Promise.allSettled([
-        apiFetch('/diet_record', { method: 'GET' }),
-        apiFetch('/month_stats'),
+        apiFetch('/api/diet_record', { method: 'GET' }),
+        apiFetch('/api/month_stats'),
         chatCheckRequest(),
         gemmaHealthRequest(),
       ]);
@@ -270,7 +270,7 @@ const Dashboard = ({ user, apiFetch }) => {
     if (tab === 'image' && imageFetchStatus === 'idle' && selectedRecord?.id) {
       setImageFetchStatus('loading');
       try {
-        const res = await apiFetch(`/diet_image`, { method: 'POST', body: JSON.stringify({ record_id: selectedRecord.id }) });
+        const res = await apiFetch(`/api/diet_image`, { method: 'POST', body: JSON.stringify({ record_id: selectedRecord.id }) });
         if (res.image_base64) { setRecordImageBase64(res.image_base64); setImageFetchStatus('success'); }
         else setImageFetchStatus('error');
       } catch (_) { setImageFetchStatus('error'); }

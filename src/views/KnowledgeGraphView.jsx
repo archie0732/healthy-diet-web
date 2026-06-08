@@ -400,14 +400,14 @@ const KnowledgeGraphView = ({ apiFetch }) => {
       setFullGraphError('');
 
       try {
-        const statusResponse = await apiFetch('/knowledge-graph/status');
+        const statusResponse = await apiFetch('/api/knowledge-graph/status');
         const normalizedStatus = normalizeKnowledgeGraphStatus(statusResponse);
         setGraphStatus(normalizedStatus);
 
         if (!normalizedStatus.ready) return;
 
         setFullGraphLoading(true);
-        const nodesResponse = await apiFetch('/knowledge-graph/nodes');
+        const nodesResponse = await apiFetch('/api/knowledge-graph/nodes');
         setFullGraphNodes(Array.isArray(nodesResponse?.items) ? nodesResponse.items : []);
       } catch (error) {
         const message = extractErrorMessage(error);
@@ -494,7 +494,7 @@ const KnowledgeGraphView = ({ apiFetch }) => {
     resetDetail();
 
     try {
-      const response = await apiFetch('/knowledge-graph/query', {
+      const response = await apiFetch('/api/knowledge-graph/query', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -525,7 +525,7 @@ const KnowledgeGraphView = ({ apiFetch }) => {
     setRelationError('');
 
     try {
-      const response = await apiFetch(`/knowledge-graph/nodes/${encodeKnowledgeGraphParam(node.id)}`);
+      const response = await apiFetch(`/api/knowledge-graph/nodes/${encodeKnowledgeGraphParam(node.id)}`);
       setNodeDetail({
         node: response?.node || node,
         edges: Array.isArray(response?.edges) ? response.edges : [],
@@ -554,7 +554,7 @@ const KnowledgeGraphView = ({ apiFetch }) => {
     }
 
     try {
-      const response = await apiFetch(`/knowledge-graph/relations/${encodeKnowledgeGraphParam(edge.id)}/evidence`);
+      const response = await apiFetch(`/api/knowledge-graph/relations/${encodeKnowledgeGraphParam(edge.id)}/evidence`);
       setRelationDetail({
         relation: response?.relation || edge,
         evidence: Array.isArray(response?.evidence) ? response.evidence : [],
