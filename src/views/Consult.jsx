@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { buildApiUrl } from '@/lib/api';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -205,7 +206,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       try {
         const data = await apiFetch(endpoint);
         const roomList = normalizeRooms(data);
-        if (roomList.length > 0 || endpoint === '/chat_rooms') {
+        if (roomList.length > 0 || endpoint === '/api/chat_rooms') {
           return roomList;
         }
       } catch (err) {
@@ -605,7 +606,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       const approvalId = normalizeApprovalId(pendingApproval.approvalId) ?? latestApprovalIdRef.current ?? null;
       if (!approvalId) throw new Error('缺少 approval_id，無法送出同意或拒絕。');
 
-      const response = await fetch('/proxy/api/approve', {
+      const response = await fetch(buildApiUrl('/api/approve'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -742,7 +743,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         payload.thread_id = knownThreadId;
       }
 
-      const requestCandidates = ['/proxy/api/chat'];
+      const requestCandidates = [buildApiUrl('/api/chat')];
       let response = null;
       let lastError = null;
 

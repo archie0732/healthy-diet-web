@@ -29,8 +29,8 @@ import {
   isAdminRole,
   persistAuthSession,
 } from '@/lib/authSession';
+import { buildApiUrl } from '@/lib/api';
 
-const API_BASE = '/proxy';
 const AUTH_LOGIN_NONCE_KEY = 'authLoginNonce';
 const AUTH_EXCLUDE_LOGOUT_ENDPOINTS = new Set([
   '/auth/login',
@@ -89,7 +89,7 @@ export default function App() {
     if (token) headers.Authorization = `Bearer ${token}`;
     if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const response = await fetch(buildApiUrl(endpoint), {
       ...options,
       headers,
     });
@@ -157,7 +157,7 @@ export default function App() {
       if (!token) return;
 
       try {
-        const res = await fetch(`${API_BASE}/api/record`, {
+        const res = await fetch(buildApiUrl('/api/record'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

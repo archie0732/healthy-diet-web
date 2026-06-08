@@ -4,6 +4,7 @@ import { Home, MessageSquare, Camera, Users, User, Shield, Wrench, X } from 'luc
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { isAdminRole } from '@/lib/authSession';
+import { buildApiUrl } from '@/lib/api';
 
 const NAV_ITEMS = [
   { to: '/', icon: Home, label: '首頁' },
@@ -36,7 +37,7 @@ export default function Layout({ user, token, handleLogout, notification, mainte
   useEffect(() => {
     const fetchAnnouncement = async () => {
       try {
-        const response = await fetch('/proxy/api/announcements/current');
+        const response = await fetch(buildApiUrl('/api/announcements/current'));
         if (!response.ok) return;
         const data = await response.json();
         setAnnouncement(normalizeAnnouncement(data));

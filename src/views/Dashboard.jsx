@@ -9,6 +9,7 @@ import {
   PieChart, Pie, Cell, Legend,
   Radar, RadarChart, PolarGrid, PolarAngleAxis, Radar as RechartsRadar
 } from 'recharts';
+import { buildApiUrl } from '@/lib/api';
 
 // 修正 Safari 對日期格式的解析相容性
 const safeParseDate = (dateString) => {
@@ -89,7 +90,7 @@ const Dashboard = ({ user, apiFetch }) => {
   const [announcementSeenKey, setAnnouncementSeenKey] = useState('');
 
   const fetchAnnouncementForDashboard = async () => {
-    const endpoints = ['/proxy/api/announcements/current'];
+    const endpoints = [buildApiUrl('/api/announcements/current')];
     const token = localStorage.getItem('token');
     const loginNonce = sessionStorage.getItem('authLoginNonce') || 'default';
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -125,7 +126,7 @@ const Dashboard = ({ user, apiFetch }) => {
       const chatCheckRequest = async () => {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const response = await fetch('/proxy/api/chat_check', { headers });
+        const response = await fetch(buildApiUrl('/api/chat_check'), { headers });
         const rawText = await response.text();
         let data = {};
 
@@ -143,7 +144,7 @@ const Dashboard = ({ user, apiFetch }) => {
       const gemmaHealthRequest = async () => {
         const token = localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const response = await fetch('/proxy/api/gemma4/health', { headers });
+        const response = await fetch(buildApiUrl('/api/gemma4/health'), { headers });
         const rawText = await response.text();
         let data = {};
 
