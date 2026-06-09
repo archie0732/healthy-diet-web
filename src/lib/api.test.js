@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildApiUrl, DEFAULT_DIRECT_API_BASE, resolveDirectApiBase, shouldUseDirectApi } from './api.js';
+import { buildApiUrl, resolveDirectApiBase, shouldUseDirectApi } from './api.js';
 
 test('resolveDirectApiBase trims trailing slashes from configured direct API base', () => {
   assert.equal(
@@ -10,8 +10,8 @@ test('resolveDirectApiBase trims trailing slashes from configured direct API bas
   );
 });
 
-test('resolveDirectApiBase falls back to the current deployed backend origin', () => {
-  assert.equal(resolveDirectApiBase({}), DEFAULT_DIRECT_API_BASE);
+test('resolveDirectApiBase stays empty when direct upload is not explicitly configured', () => {
+  assert.equal(resolveDirectApiBase({}), '');
 });
 
 test('buildApiUrl keeps ordinary endpoints on the Vercel proxy', () => {
