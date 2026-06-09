@@ -428,9 +428,8 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
         if (!normalizedStatus.ready && isAdminRole(role)) {
           setGraphPreparing(true);
           try {
-            await apiFetch('/api/graph/extract-all', {
+            await apiFetch('/api/admin/knowledge-graph/rebuild', {
               method: 'POST',
-              body: JSON.stringify({ force: true }),
             });
             normalizedStatus = await loadStatusAndNodes();
           } finally {
