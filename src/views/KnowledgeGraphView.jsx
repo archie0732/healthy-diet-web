@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ForceGraph3D from 'react-force-graph-3d';
+import SpriteText from 'three-spritetext';
 import {
   ArrowRight,
   Database,
   FileText,
   GitBranch,
   LoaderCircle,
-  Minus,
   Network,
-  Plus,
   RefreshCw,
   Search,
   ShieldAlert,
@@ -17,13 +17,10 @@ import {
 import {
   buildKnowledgeGraphModeLabel,
   buildKnowledgeGraphQueryPayload,
-  buildSvgGraphLayout,
-  clampGraphScale,
   clampKnowledgeGraphMaxNodes,
   deriveFullGraphEdges,
   encodeKnowledgeGraphParam,
   normalizeKnowledgeGraphStatus,
-  zoomGraphViewport,
 } from '@/lib/knowledgeGraph';
 import { isAdminRole } from '@/lib/authSession';
 
@@ -34,9 +31,7 @@ const SOURCE_OPTIONS = [
 ];
 
 const DEFAULT_SOURCE_TYPES = ['uploaded_knowledge', 'mohw_news'];
-const SVG_WIDTH = 960;
-const SVG_HEIGHT = 560;
-const DEFAULT_VIEWPORT = { scale: 1, translateX: 0, translateY: 0 };
+const GRAPH_HEIGHT = 560;
 
 const sourceTypeTone = (value) => {
   if (value === 'uploaded_knowledge') return 'bg-blue-100 text-blue-700';
@@ -95,79 +90,83 @@ const GraphCanvas = ({
   onSelectNode,
   onSelectEdge,
   selectedItem,
-  viewport,
-  setViewport,
+  resetSignal,
 }) => {
-  const svgRef = useRef(null);
-  const dragStateRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const graphRef = useRef(null);
+  const containerRef = useRef(null);
+  const [graphWidth, setGraphWidth] = useState(960);
 
   const title = mode === 'subgraph' ? '查詢子圖' : '全量知識圖譜';
   const limitedNodes = nodes.slice(0, mode === 'subgraph' ? 18 : 24);
   const activeEdges = mode === 'subgraph' ? edges : deriveFullGraphEdges(limitedNodes);
-  const layout = buildSvgGraphLayout({
-    nodes: limitedNodes,
-    edges: activeEdges,
-    width: SVG_WIDTH,
-    height: SVG_HEIGHT,
-  });
+  const graphData = useMemo(
+    () => ({
+      nodes: limitedNodes.map((node) => ({
+        ...node,
+        color: nodeTypeStyle(node.node_type).fill,
+        val: selectedItem?.type === 'node' && selectedItem.id === node.id ? 10 : 7,
+      })),
+      links: activeEdges.map((edge) => ({
+        ...edge,
+        source: edge.source,
+        target: edge.target,
+        color:
+          selectedItem?.type === 'relation' && selectedItem.id === edge.id
+            ? '#7dd3fc'
+            : edge.derived
+              ? '#86efac'
+              : '#cbd5e1',
+      })),
+    }),
+    [activeEdges, limitedNodes, selectedItem],
+  );
 
-  const handleZoomButton = (nextScale) => {
-    setViewport((current) =>
-      zoomGraphViewport({
-        ...current,
-        nextScale,
-        focalX: SVG_WIDTH / 2,
-        focalY: SVG_HEIGHT / 2,
-      }),
-    );
-  };
-
-  const handleWheel = (event) => {
-    event.preventDefault();
-    if (!svgRef.current) return;
-
-    const bounds = svgRef.current.getBoundingClientRect();
-    const focalX = ((event.clientX - bounds.left) / bounds.width) * SVG_WIDTH;
-    const focalY = ((event.clientY - bounds.top) / bounds.height) * SVG_HEIGHT;
-    const delta = event.deltaY > 0 ? -0.12 : 0.12;
-
-    setViewport((current) =>
-      zoomGraphViewport({
-        ...current,
-        nextScale: clampGraphScale(current.scale + delta),
-        focalX,
-        focalY,
-      }),
-    );
-  };
-
-  const handlePointerDown = (event) => {
-    if (event.target.dataset.graphControl === 'true') return;
-    dragStateRef.current = {
-      startX: event.clientX,
-      startY: event.clientY,
-      startTranslateX: viewport.translateX,
-      startTranslateY: viewport.translateY,
+  useEffect(() => {
+    const updateSize = () => {
+      if (!containerRef.current) return;
+      setGraphWidth(containerRef.current.clientWidth || 960);
     };
-    setIsDragging(true);
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  useEffect(() => {
+    if (!graphRef.current || !graphData.nodes.length) return;
+    graphRef.current.d3ReheatSimulation();
+    graphRef.current.zoomToFit(400, 80);
+  }, [graphData]);
+
+  useEffect(() => {
+    if (!graphRef.current) return;
+    graphRef.current.zoomToFit(600, 80);
+  }, [resetSignal]);
+
+  const handleNodeClick = (node) => {
+    if (!node) return;
+    onSelectNode(node);
+    if (!graphRef.current) return;
+
+    const distance = 140;
+    const distRatio = 1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
+    graphRef.current.cameraPosition(
+      {
+        x: (node.x || 0) * distRatio,
+        y: (node.y || 0) * distRatio,
+        z: (node.z || 0) * distRatio,
+      },
+      node,
+      900,
+    );
   };
 
-  const handlePointerMove = (event) => {
-    if (!dragStateRef.current) return;
-    const deltaX = ((event.clientX - dragStateRef.current.startX) / (svgRef.current?.clientWidth || SVG_WIDTH)) * SVG_WIDTH;
-    const deltaY = ((event.clientY - dragStateRef.current.startY) / (svgRef.current?.clientHeight || SVG_HEIGHT)) * SVG_HEIGHT;
-
-    setViewport((current) => ({
-      ...current,
-      translateX: dragStateRef.current.startTranslateX + deltaX,
-      translateY: dragStateRef.current.startTranslateY + deltaY,
-    }));
-  };
-
-  const stopDragging = () => {
-    dragStateRef.current = null;
-    setIsDragging(false);
+  const makeNodeLabel = (node) => {
+    const sprite = new SpriteText(String(node.label || node.id || '').slice(0, 18));
+    sprite.color = '#ffffff';
+    sprite.textHeight = 6;
+    sprite.backgroundColor = 'rgba(15,23,42,0.78)';
+    return sprite;
   };
 
   return (
@@ -193,14 +192,14 @@ const GraphCanvas = ({
       {loading ? (
         <div className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
           <LoaderCircle size={28} className="mx-auto animate-spin text-emerald-600" />
-          <p className="mt-4 text-lg font-black text-slate-700">圖譜讀取中</p>
-          <p className="mt-2 text-sm text-slate-500">畫布已先顯示，正在等待知識圖譜資料。</p>
+          <p className="mt-4 text-lg font-black text-slate-700">圖譜載入中</p>
+          <p className="mt-2 text-sm text-slate-500">正在整理節點、關係與證據資料，請稍候。</p>
         </div>
       ) : null}
 
       {!loading && error ? (
         <div className="rounded-[28px] border border-rose-200 bg-rose-50 px-6 py-12 text-center">
-          <p className="text-lg font-black text-rose-700">圖譜載入失敗</p>
+          <p className="text-lg font-black text-rose-700">圖譜讀取失敗</p>
           <p className="mt-2 text-sm text-rose-600">{error}</p>
         </div>
       ) : null}
@@ -210,8 +209,8 @@ const GraphCanvas = ({
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900 text-white">
             <Database size={24} />
           </div>
-          <p className="mt-4 text-lg font-black text-slate-700">目前全量圖譜尚未準備完成</p>
-          <p className="mt-2 text-sm text-slate-500">側邊欄仍可保留條件，之後再回來查看全量圖譜。</p>
+          <p className="mt-4 text-lg font-black text-slate-700">知識圖譜尚未準備完成</p>
+          <p className="mt-2 text-sm text-slate-500">請先建立或重建圖譜資料，完成後這裡會自動切換成 3D 視圖。</p>
         </div>
       ) : null}
 
@@ -221,11 +220,11 @@ const GraphCanvas = ({
             <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-200">Visual Graph</p>
-                <h3 className="mt-2 text-2xl font-black">{mode === 'subgraph' ? '聚焦子圖' : '全量節點總覽'}</h3>
+                <h3 className="mt-2 text-2xl font-black">{mode === 'subgraph' ? '3D 聚焦子圖' : '3D 全量知識圖譜'}</h3>
                 <p className="mt-2 text-sm text-slate-200">
                   {mode === 'subgraph'
-                    ? '目前顯示依 query 生成的子圖，節點與關係都可直接點擊查看細節。'
-                    : '目前顯示全量知識節點的 SVG 圖譜總覽，線條會先用共用文件來源做關聯提示。'}
+                    ? '3D 子圖會自動聚焦在查詢結果，拖曳可以旋轉角度，點節點讀取 neighbors 與 evidence。'
+                    : '全量模式改成真正的 3D 力導向圖，不再是平均排版的 SVG，因此節點關係會更自然。'}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -236,127 +235,50 @@ const GraphCanvas = ({
               </div>
             </div>
 
-            <div className="mb-3 flex flex-wrap gap-2">
+            <div className="mb-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-300">
+              <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">3D orbit: 拖曳旋轉、滾輪縮放</span>
+              <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">點節點聚焦並讀取 detail</span>
+              <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">點關係查看 evidence</span>
               <button
                 type="button"
-                data-graph-control="true"
-                onClick={() => handleZoomButton(viewport.scale + 0.2)}
-                className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-black text-white transition hover:bg-white/15"
-              >
-                <Plus size={16} />
-              </button>
-              <button
-                type="button"
-                data-graph-control="true"
-                onClick={() => handleZoomButton(viewport.scale - 0.2)}
-                className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-black text-white transition hover:bg-white/15"
-              >
-                <Minus size={16} />
-              </button>
-              <button
-                type="button"
-                data-graph-control="true"
-                onClick={() => setViewport(DEFAULT_VIEWPORT)}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-black text-white transition hover:bg-white/15"
+                onClick={() => graphRef.current?.zoomToFit(600, 80)}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs font-black text-white transition hover:bg-white/15"
               >
                 <RefreshCw size={14} />
-                重置
+                重新置中
               </button>
-              <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200">
-                縮放 {viewport.scale.toFixed(2)}x
-              </span>
             </div>
 
-            <div
-              className={`overflow-hidden rounded-[28px] border border-white/10 bg-white/5 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-              onPointerMove={handlePointerMove}
-              onPointerUp={stopDragging}
-              onPointerLeave={stopDragging}
-            >
-              <svg
-                ref={svgRef}
-                viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
-                className="h-[560px] w-full touch-none"
-                onWheel={handleWheel}
-                onPointerDown={handlePointerDown}
-              >
-                <defs>
-                  <linearGradient id="graph-bg" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#0f172a" />
-                    <stop offset="100%" stopColor="#14532d" />
-                  </linearGradient>
-                </defs>
-                <rect width={SVG_WIDTH} height={SVG_HEIGHT} fill="url(#graph-bg)" />
-
-                <g transform={`translate(${viewport.translateX} ${viewport.translateY}) scale(${viewport.scale})`}>
-                  {layout.edges.map((edge) => {
-                    const isSelected = selectedItem?.type === 'relation' && selectedItem.id === edge.id;
-                    const x1 = edge.sourceNode.x;
-                    const y1 = edge.sourceNode.y;
-                    const x2 = edge.targetNode.x;
-                    const y2 = edge.targetNode.y;
-                    const midX = (x1 + x2) / 2;
-                    const midY = (y1 + y2) / 2;
-
-                    return (
-                      <g key={edge.id}>
-                        <line
-                          x1={x1}
-                          y1={y1}
-                          x2={x2}
-                          y2={y2}
-                          stroke={isSelected ? '#7dd3fc' : edge.derived ? '#86efac' : '#cbd5e1'}
-                          strokeWidth={isSelected ? 4 : 2}
-                          opacity={0.9}
-                          className="cursor-pointer"
-                          onClick={() => onSelectEdge(edge)}
-                        />
-                        <text
-                          x={midX}
-                          y={midY - 8}
-                          textAnchor="middle"
-                          className="pointer-events-none fill-slate-200 text-[11px] font-bold"
-                        >
-                          {edge.relation_type}
-                        </text>
-                      </g>
-                    );
-                  })}
-
-                  {layout.nodes.map((node) => {
-                    const isSelected = selectedItem?.type === 'node' && selectedItem.id === node.id;
-                    const colors = nodeTypeStyle(node.node_type);
-
-                    return (
-                      <g key={node.id} className="cursor-pointer" onClick={() => onSelectNode(node)}>
-                        <circle
-                          cx={node.x}
-                          cy={node.y}
-                          r={isSelected ? 22 : 18}
-                          fill={colors.fill}
-                          stroke={isSelected ? '#f8fafc' : colors.stroke}
-                          strokeWidth={isSelected ? 4 : 2}
-                        />
-                        <text
-                          x={node.x}
-                          y={node.y - 30}
-                          textAnchor="middle"
-                          className="pointer-events-none fill-white text-[12px] font-bold"
-                        >
-                          {String(node.label || node.id).slice(0, 18)}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </g>
-              </svg>
+            <div ref={containerRef} className="overflow-hidden rounded-[28px] border border-white/10 bg-white/5">
+              <ForceGraph3D
+                ref={graphRef}
+                width={graphWidth}
+                height={GRAPH_HEIGHT}
+                graphData={graphData}
+                backgroundColor="#00000000"
+                nodeLabel={(node) => `${node.label || node.id}\n${node.node_type || 'node'}`}
+                nodeColor={(node) => node.color}
+                nodeVal={(node) => node.val}
+                nodeThreeObject={(node) => (selectedItem?.type === 'node' && selectedItem.id === node.id ? makeNodeLabel(node) : null)}
+                linkLabel={(link) => link.relation_type || 'relation'}
+                linkColor={(link) => link.color}
+                linkWidth={(link) => (selectedItem?.type === 'relation' && selectedItem.id === link.id ? 3.5 : link.derived ? 1.5 : 2)}
+                linkOpacity={0.75}
+                linkDirectionalParticles={(link) => (selectedItem?.type === 'relation' && selectedItem.id === link.id ? 4 : 0)}
+                linkDirectionalParticleWidth={2}
+                linkDirectionalParticleColor={(link) => link.color}
+                cooldownTicks={120}
+                enableNodeDrag
+                onNodeClick={handleNodeClick}
+                onLinkClick={onSelectEdge}
+              />
             </div>
 
             <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-300">
-              <span>顯示節點: {layout.nodes.length}</span>
-              <span>顯示連線: {layout.edges.length}</span>
-              <span>互動方式: 滾輪縮放、拖曳平移</span>
-              {nodes.length > layout.nodes.length ? <span>其餘 {nodes.length - layout.nodes.length} 個節點已先收斂。</span> : null}
+              <span>顯示節點: {graphData.nodes.length}</span>
+              <span>顯示連線: {graphData.links.length}</span>
+              <span>操作方式: 拖曳旋轉視角、滑鼠滾輪縮放</span>
+              {nodes.length > graphData.nodes.length ? <span>另外還有 {nodes.length - graphData.nodes.length} 個節點暫未顯示</span> : null}
             </div>
           </div>
         </div>
@@ -370,7 +292,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
   const [maxNodes, setMaxNodes] = useState(12);
   const [sourceTypes, setSourceTypes] = useState(DEFAULT_SOURCE_TYPES);
   const [documentIdsText, setDocumentIdsText] = useState('');
-  const [viewport, setViewport] = useState(DEFAULT_VIEWPORT);
+  const [graphResetSignal, setGraphResetSignal] = useState(0);
 
   const [statusLoading, setStatusLoading] = useState(true);
   const [statusError, setStatusError] = useState('');
@@ -490,7 +412,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
     setRelationError('');
   };
 
-  const resetViewport = () => setViewport(DEFAULT_VIEWPORT);
+  const resetViewport = () => setGraphResetSignal((current) => current + 1);
 
   const handleBackToFullGraph = () => {
     setGraphMode('full');
@@ -726,8 +648,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
             onSelectNode={handleSelectNode}
             onSelectEdge={handleSelectEdge}
             selectedItem={selectedItem}
-            viewport={viewport}
-            setViewport={setViewport}
+            resetSignal={graphResetSignal}
           />
 
           {graphMode === 'subgraph' ? (
