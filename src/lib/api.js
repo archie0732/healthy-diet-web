@@ -3,15 +3,30 @@ const normalizePath = (path) => {
   return path.startsWith('/') ? path : `/${path}`;
 };
 
-export const API_BASE = '';
+export const API_PROXY_BASE = '/backend';
+export const DIRECT_API_PATHS = ['/admin/rag/documents'];
 
-export const resolveApiBase = (env = import.meta.env) => {
-  const base = typeof env?.VITE_API_BASE === 'string' ? env.VITE_API_BASE.trim() : '';
+export const resolveDirectApiBase = (env = import.meta.env) => {
+  const base = typeof env?.VITE_DIRECT_API_BASE === 'string' ? env.VITE_DIRECT_API_BASE.trim() : '';
   return base.replace(/\/+$/, '');
+};
+
+export const shouldUseDirectApi = (path, env = import.meta.env) => {
+  const normalizedPath = normalizePath(path);
+  const directApiBase = resolveDirectApiBase(env);
+
+  if (!directApiBase) return false;
+
+  return DIRECT_API_PATHS.includes(normalizedPath);
 };
 
 export const buildApiUrl = (path, env = import.meta.env) => {
   const normalizedPath = normalizePath(path);
-  const apiBase = resolveApiBase(env);
-  return `${apiBase || API_BASE}${normalizedPath}`;
+  const directApiBase = resolveDirectApiBase(env);
+
+  if (shouldUseDirectApi(normalizedPath, env)) {
+    return `${directApiBase}${normalizedPath}`;
+  }
+
+  return `${API_PROXY_BASE}${normalizedPath}`;
 };
