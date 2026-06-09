@@ -52,3 +52,11 @@ npm install
 npm run dev
 
 ```
+
+## Frontend API Base
+
+Set `VITE_API_BASE` when the frontend should call a separately deployed backend.
+
+```bash
+VITE_API_BASE=https://your-backend.example.com
+```
