@@ -4,5 +4,30 @@ const normalizePath = (path) => {
 };
 
 export const API_PROXY_BASE = '/backend';
+export const DIRECT_API_PATHS = ['/admin/rag/documents'];
+export const DEFAULT_DIRECT_API_BASE = 'https://daily-fezzed-larisa.ngrok-free.dev';
 
-export const buildApiUrl = (path) => `${API_PROXY_BASE}${normalizePath(path)}`;
+export const resolveDirectApiBase = (env = import.meta.env) => {
+  const base = typeof env?.VITE_DIRECT_API_BASE === 'string' ? env.VITE_DIRECT_API_BASE.trim() : '';
+  return (base || DEFAULT_DIRECT_API_BASE).replace(/\/+$/, '');
+};
+
+export const shouldUseDirectApi = (path, env = import.meta.env) => {
+  const normalizedPath = normalizePath(path);
+  const directApiBase = resolveDirectApiBase(env);
+
+  if (!directApiBase) return false;
+
+  return DIRECT_API_PATHS.includes(normalizedPath);
+};
+
+export const buildApiUrl = (path, env = import.meta.env) => {
+  const normalizedPath = normalizePath(path);
+  const directApiBase = resolveDirectApiBase(env);
+
+  if (shouldUseDirectApi(normalizedPath, env)) {
+    return `${directApiBase}${normalizedPath}`;
+  }
+
+  return `${API_PROXY_BASE}${normalizedPath}`;
+};
