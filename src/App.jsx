@@ -235,7 +235,7 @@ export default function App() {
             <Route path="/news" element={<NewsListView apiFetch={apiFetch} role={role} />} />
             <Route path="/news/:id" element={<NewsDetailView apiFetch={apiFetch} />} />
             <Route path="/knowledge-search" element={<KnowledgeSearchView apiFetch={apiFetch} />} />
-            <Route path="/knowledge-graph" element={<KnowledgeGraphView apiFetch={apiFetch} />} />
+            <Route path="/knowledge-graph" element={<KnowledgeGraphView apiFetch={apiFetch} role={role} />} />
             <Route path="/api" element={<ApiDocs />} />
             <Route path="/privacy" element={<Privacy />} />
 

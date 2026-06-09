@@ -92,6 +92,55 @@ test('normalizeKnowledgeGraphStatus returns a stable ready summary shape', () =>
   );
 });
 
+test('normalizeKnowledgeGraphStatus accepts alternate ready fields and status labels', () => {
+  assert.deepEqual(
+    normalizeKnowledgeGraphStatus({
+      graph_ready: true,
+      summary: {},
+    }),
+    {
+      ready: true,
+      summary: {
+        document_count: 0,
+        node_count: 0,
+        edge_count: 0,
+        evidence_count: 0,
+        generated_at: '',
+        source_counts: {},
+      },
+    },
+  );
+
+  assert.equal(
+    normalizeKnowledgeGraphStatus({
+      status: 'ready',
+      summary: {},
+    }).ready,
+    true,
+  );
+});
+
+test('normalizeKnowledgeGraphStatus infers ready when summary counts already exist', () => {
+  assert.equal(
+    normalizeKnowledgeGraphStatus({
+      summary: {
+        node_count: 8,
+      },
+    }).ready,
+    true,
+  );
+
+  assert.equal(
+    normalizeKnowledgeGraphStatus({
+      status: 'processing',
+      summary: {
+        node_count: 8,
+      },
+    }).ready,
+    false,
+  );
+});
+
 test('buildKnowledgeGraphModeLabel falls back to full graph label without subgraph query text', () => {
   assert.equal(buildKnowledgeGraphModeLabel({ mode: 'subgraph', query: '' }), '目前檢視：全量知識圖譜');
 });

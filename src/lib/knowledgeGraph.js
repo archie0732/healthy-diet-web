@@ -40,17 +40,36 @@ export const buildKnowledgeGraphQueryPayload = ({
   return payload;
 };
 
-export const normalizeKnowledgeGraphStatus = (payload = {}) => ({
-  ready: Boolean(payload?.ready),
-  summary: {
-    document_count: Number(payload?.summary?.document_count) || 0,
-    node_count: Number(payload?.summary?.node_count) || 0,
-    edge_count: Number(payload?.summary?.edge_count) || 0,
-    evidence_count: Number(payload?.summary?.evidence_count) || 0,
-    generated_at: payload?.summary?.generated_at || '',
-    source_counts: payload?.summary?.source_counts || {},
-  },
+const normalizeGraphSummary = (summary = {}) => ({
+  document_count: Number(summary?.document_count) || 0,
+  node_count: Number(summary?.node_count) || 0,
+  edge_count: Number(summary?.edge_count) || 0,
+  evidence_count: Number(summary?.evidence_count) || 0,
+  generated_at: summary?.generated_at || '',
+  source_counts: summary?.source_counts || {},
 });
+
+const inferKnowledgeGraphReady = (payload, summary) => {
+  if (typeof payload?.ready === 'boolean') return payload.ready;
+  if (typeof payload?.graph_ready === 'boolean') return payload.graph_ready;
+
+  const statusValue = String(payload?.status || payload?.state || payload?.graph_status || '')
+    .trim()
+    .toLowerCase();
+  if (['ready', 'completed', 'complete', 'available', 'success'].includes(statusValue)) return true;
+  if (['pending', 'processing', 'building', 'loading', 'queued', 'failed', 'error'].includes(statusValue)) return false;
+
+  return summary.document_count > 0 || summary.node_count > 0 || summary.edge_count > 0 || summary.evidence_count > 0;
+};
+
+export const normalizeKnowledgeGraphStatus = (payload = {}) => {
+  const summary = normalizeGraphSummary(payload?.summary);
+
+  return {
+    ready: inferKnowledgeGraphReady(payload, summary),
+    summary,
+  };
+};
 
 export const buildKnowledgeGraphModeLabel = ({ mode, query }) => {
   if (mode === 'subgraph' && query) return `目前檢視：查詢子圖 - ${query}`;

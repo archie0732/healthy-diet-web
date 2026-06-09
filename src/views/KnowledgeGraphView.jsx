@@ -25,6 +25,7 @@ import {
   normalizeKnowledgeGraphStatus,
   zoomGraphViewport,
 } from '@/lib/knowledgeGraph';
+import { isAdminRole } from '@/lib/authSession';
 
 const SOURCE_OPTIONS = [
   { value: 'uploaded_knowledge', label: 'uploaded_knowledge' },
@@ -364,7 +365,7 @@ const GraphCanvas = ({
   );
 };
 
-const KnowledgeGraphView = ({ apiFetch }) => {
+const KnowledgeGraphView = ({ apiFetch, role }) => {
   const [query, setQuery] = useState('');
   const [maxNodes, setMaxNodes] = useState(12);
   const [sourceTypes, setSourceTypes] = useState(DEFAULT_SOURCE_TYPES);
@@ -374,6 +375,7 @@ const KnowledgeGraphView = ({ apiFetch }) => {
   const [statusLoading, setStatusLoading] = useState(true);
   const [statusError, setStatusError] = useState('');
   const [graphStatus, setGraphStatus] = useState(() => normalizeKnowledgeGraphStatus());
+  const [graphPreparing, setGraphPreparing] = useState(false);
 
   const [fullGraphLoading, setFullGraphLoading] = useState(false);
   const [fullGraphError, setFullGraphError] = useState('');
@@ -394,33 +396,58 @@ const KnowledgeGraphView = ({ apiFetch }) => {
   const [relationError, setRelationError] = useState('');
 
   useEffect(() => {
+    const loadStatusAndNodes = async () => {
+      const statusResponse = await apiFetch('/api/knowledge-graph/status');
+      const normalizedStatus = normalizeKnowledgeGraphStatus(statusResponse);
+      setGraphStatus(normalizedStatus);
+
+      if (!normalizedStatus.ready) {
+        setFullGraphNodes([]);
+        return normalizedStatus;
+      }
+
+      setFullGraphLoading(true);
+      try {
+        const nodesResponse = await apiFetch('/api/knowledge-graph/nodes');
+        setFullGraphNodes(Array.isArray(nodesResponse?.items) ? nodesResponse.items : []);
+      } finally {
+        setFullGraphLoading(false);
+      }
+
+      return normalizedStatus;
+    };
+
     const loadInitialGraph = async () => {
       setStatusLoading(true);
       setStatusError('');
       setFullGraphError('');
 
       try {
-        const statusResponse = await apiFetch('/api/knowledge-graph/status');
-        const normalizedStatus = normalizeKnowledgeGraphStatus(statusResponse);
-        setGraphStatus(normalizedStatus);
+        let normalizedStatus = await loadStatusAndNodes();
 
-        if (!normalizedStatus.ready) return;
-
-        setFullGraphLoading(true);
-        const nodesResponse = await apiFetch('/api/knowledge-graph/nodes');
-        setFullGraphNodes(Array.isArray(nodesResponse?.items) ? nodesResponse.items : []);
+        if (!normalizedStatus.ready && isAdminRole(role)) {
+          setGraphPreparing(true);
+          try {
+            await apiFetch('/api/graph/extract-all', {
+              method: 'POST',
+              body: JSON.stringify({ force: true }),
+            });
+            normalizedStatus = await loadStatusAndNodes();
+          } finally {
+            setGraphPreparing(false);
+          }
+        }
       } catch (error) {
         const message = extractErrorMessage(error);
         setStatusError(message);
         setFullGraphError(message);
       } finally {
         setStatusLoading(false);
-        setFullGraphLoading(false);
       }
     };
 
     loadInitialGraph();
-  }, [apiFetch]);
+  }, [apiFetch, role]);
 
   const graphSummary = graphStatus.summary;
   const fullGraphData = useMemo(
@@ -440,7 +467,7 @@ const KnowledgeGraphView = ({ apiFetch }) => {
   const evidence = activeGraphData.evidence || [];
   const documents = activeGraphData.documents || [];
   const graphReady = graphStatus.ready;
-  const graphLoading = statusLoading || (graphReady && fullGraphLoading);
+  const graphLoading = statusLoading || graphPreparing || (graphReady && fullGraphLoading);
   const graphError = statusError || fullGraphError;
   const modeLabel = buildKnowledgeGraphModeLabel({ mode: graphMode, query: activeQuery });
 
