@@ -8,6 +8,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { buildApiUrl } from '@/lib/api';
+import { buildConsultChatPayload, DEFAULT_MODEL_SOURCE } from '@/lib/consultChat';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -18,9 +19,16 @@ const generateUUID = () => {
   );
 };
 
+const MODEL_SOURCE_OPTIONS = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'google', label: 'Google' },
+  { value: 'local', label: 'Local' },
+];
+
 const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
   const QUESTION_MAX_LENGTH = 500;
   const [question, setQuestion] = useState('');
+  const [modelSource, setModelSource] = useState(DEFAULT_MODEL_SOURCE);
   const [chatHistory, setChatHistory] = useState([]);
   const [isThinking, setIsThinking] = useState(false);
 
@@ -714,23 +722,14 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     ]);
 
     try {
-      const payload = {
+      const payload = buildConsultChatPayload({
         message: newQ,
-        room_id: targetRoomId,
+        roomId: targetRoomId,
         image: currentImg,
-        user_context: user
-          ? {
-            name: user.name || user.username,
-            gender: user.gender,
-            height: user.height,
-            weight: user.weight,
-            diet_goal: user.diet_goal || user.goal,
-          }
-          : null,
-      };
-      if (knownThreadId) {
-        payload.thread_id = knownThreadId;
-      }
+        user,
+        threadId: knownThreadId,
+        modelSource,
+      });
 
       const requestCandidates = [buildApiUrl('/api/chat')];
       let response = null;
@@ -1262,7 +1261,35 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               <ImagePlus size={22} />
             </button>
 
-            <div className="relative flex-1">
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center justify-between gap-3 px-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  {MODEL_SOURCE_OPTIONS.map((option) => {
+                    const isActive = modelSource === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setModelSource(option.value)}
+                        disabled={isThinking || isRoomLoading || !activeRoomId}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                          isActive
+                            ? 'border-slate-900 bg-slate-900 text-white'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        } disabled:cursor-not-allowed disabled:opacity-50`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400">
+                  Model
+                </span>
+              </div>
+
+              <div className="relative">
               <textarea
                 value={question}
                 onChange={handleQuestionChange}
@@ -1279,6 +1306,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                 className="w-full resize-none rounded-[22px] border border-slate-200 bg-white px-5 py-3.5 pr-12 text-sm text-slate-800 outline-none transition focus:border-slate-300 focus:ring-4 focus:ring-slate-100 sm:text-[15px]"
               />
               <BrainCircuit size={18} className="absolute right-4 bottom-4 text-slate-300" />
+              </div>
             </div>
 
             <button
