@@ -5,6 +5,7 @@ import {
   buildConsultChatPayload,
   DEFAULT_MODEL_SOURCE,
   normalizeModelSource,
+  resolveConsultStreamEventType,
 } from './consultChat.js';
 
 test('normalizeModelSource falls back to auto for unsupported values', () => {
@@ -54,4 +55,11 @@ test('buildConsultChatPayload defaults model_source to auto', () => {
 
   assert.equal(payload.model_source, 'auto');
   assert.equal(payload.user_context, null);
+});
+
+test('resolveConsultStreamEventType falls back to SSE event field when payload type is missing', () => {
+  assert.equal(resolveConsultStreamEventType({ content: 'thinking' }, 'status'), 'status');
+  assert.equal(resolveConsultStreamEventType({ content: 'calling tool' }, 'tool'), 'tool');
+  assert.equal(resolveConsultStreamEventType({ type: 'answer' }, 'status'), 'answer');
+  assert.equal(resolveConsultStreamEventType({}, ''), '');
 });

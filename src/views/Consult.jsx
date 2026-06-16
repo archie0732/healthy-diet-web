@@ -8,7 +8,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { buildApiUrl } from '@/lib/api';
-import { buildConsultChatPayload, DEFAULT_MODEL_SOURCE } from '@/lib/consultChat';
+import { buildConsultChatPayload, DEFAULT_MODEL_SOURCE, resolveConsultStreamEventType } from '@/lib/consultChat';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -20,9 +20,9 @@ const generateUUID = () => {
 };
 
 const MODEL_SOURCE_OPTIONS = [
-  { value: 'auto', label: 'Auto' },
+  { value: 'auto', label: '自動' },
   { value: 'google', label: 'Google' },
-  { value: 'local', label: 'Local' },
+  { value: 'local', label: '本機' },
 ];
 
 const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
@@ -840,15 +840,20 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
         const processEventBlock = (block) => {
           const lines = block
-            .split('\n')
+            .split(/\r?\n/)
             .map((line) => line.trim())
             .filter(Boolean);
 
           let sseId = null;
+          let sseEventName = '';
           const dataLines = [];
           for (const line of lines) {
             if (line.startsWith('id:')) {
               sseId = line.slice(3).trim();
+              continue;
+            }
+            if (line.startsWith('event:')) {
+              sseEventName = line.slice(6).trim();
               continue;
             }
             if (line.startsWith('data:')) {
@@ -862,7 +867,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
           try {
             const data = JSON.parse(payloadText);
-            const eventType = String(data?.type ?? '').toLowerCase();
+            const eventType = resolveConsultStreamEventType(data, sseEventName);
             const content = typeof data?.content === 'string' ? data.content : '';
             const eventThreadId = extractThreadIdFromData(data) ?? normalizeThreadId(sseId);
             if (eventThreadId) {
@@ -932,10 +937,10 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
   const approvalActionId = normalizeApprovalId(pendingApproval?.approvalId) ?? latestApprovalIdRef.current ?? null;
   const starterSuggestions = [
-    'High-protein one-day meal plan',
-    'What should I eat for dinner during 16:8 fasting?',
-    'How can I order healthier when eating out?',
-    'Can you estimate whether I exceeded my calories today?',
+    '幫我安排高蛋白一日菜單',
+    '168 斷食期間晚餐該怎麼吃？',
+    '外食時要怎麼點得更健康？',
+    '可以幫我估算今天有沒有吃超過熱量嗎？',
   ];
 
   return (
@@ -947,7 +952,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         <div className="border-b border-slate-200 p-4">
           <div className="mb-4">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Chats</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">Consult</h2>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">飲食諮詢</h2>
           </div>
 
           <div className="flex items-center gap-2">
@@ -958,7 +963,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             >
               <span className="inline-flex items-center gap-2">
                 <Plus size={16} />
-                New chat
+                新增聊天室
               </span>
             </button>
             <button
@@ -981,7 +986,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               </div>
             ))
           ) : rooms.length === 0 ? (
-            <div className="py-8 text-center text-sm text-slate-400">No chats yet</div>
+            <div className="py-8 text-center text-sm text-slate-400">目前還沒有聊天室</div>
           ) : (
             rooms.map((room) => (
               <button
@@ -994,7 +999,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                 }`}
               >
                 <MessageSquare size={16} className={activeRoomId === room.id ? 'text-white' : 'text-slate-400'} />
-                <span className="truncate font-medium">{room.title || 'Untitled chat'}</span>
+                <span className="truncate font-medium">{room.title || '未命名聊天室'}</span>
               </button>
             ))
           )}
@@ -1022,12 +1027,12 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             </div>
             <div className="min-w-0">
               <h2 className="truncate text-base font-semibold text-slate-900 sm:text-lg">{activeRoomTitle}</h2>
-              <p className="text-xs text-slate-500">AI diet assistant</p>
+              <p className="text-xs text-slate-500">AI 飲食助理</p>
             </div>
           </div>
           <div className="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
             <span className={`inline-block h-2 w-2 rounded-full ${isThinking ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
-            <span>{isThinking ? 'Thinking' : 'Ready'}</span>
+            <span>{isThinking ? '思考中' : '待命中'}</span>
           </div>
         </div>
 
@@ -1036,7 +1041,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             <div className="flex h-full items-center justify-center">
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-slate-600 shadow-sm">
                 <Activity size={18} className="animate-spin" />
-                <span className="text-sm font-medium">Loading chat...</span>
+                <span className="text-sm font-medium">正在載入聊天室...</span>
               </div>
             </div>
           ) : chatHistory.length === 0 ? (
@@ -1044,9 +1049,9 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-700">
                 <BrainCircuit size={28} />
               </div>
-              <h3 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">Start a new conversation</h3>
+              <h3 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">開始新的對話</h3>
               <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
-                Ask about calories, meal planning, fat loss, protein intake, or send a food photo for analysis.
+                你可以詢問熱量、餐點規劃、減脂、蛋白質攝取，或直接上傳食物照片讓 AI 協助分析。
               </p>
 
               <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
@@ -1099,7 +1104,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                           {!msg.content || msg.content === '' ? (
                             <span className="flex items-center gap-2 font-medium text-slate-500">
                               <span className="inline-block h-2 w-2 rounded-full bg-slate-400 animate-pulse"></span>
-                              <span>{aiStatus || 'Thinking...'}</span>
+                              <span>{aiStatus || 'AI 思考中...'}</span>
                             </span>
                           ) : (
                             <div className="prose prose-slate max-w-none prose-headings:border-b prose-headings:border-slate-200 prose-headings:pb-2 prose-headings:font-semibold prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-blue-600 prose-strong:text-slate-900 prose-code:rounded prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-pre:bg-slate-900 prose-pre:text-slate-50 prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:p-2 prose-td:border prose-td:border-slate-200 prose-td:p-2 sm:prose-base">
@@ -1120,7 +1125,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                               className={`flex items-center gap-1 text-[11px] font-medium transition ${reportingIdx === idx ? 'text-rose-500' : 'text-slate-400 opacity-0 group-hover:opacity-100 hover:text-rose-500'}`}
                             >
                               <Flag size={12} />
-                              <span>Report</span>
+                              <span>回報</span>
                             </button>
 
                             {reportingIdx === idx && (
@@ -1132,12 +1137,12 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                                   Report
                                 </div>
                                 <div className="flex flex-col">
-                                  {['Incorrect', 'Incomplete', 'Off topic', 'Other'].map((opt) => (
+                                  {['內容不正確', '內容不完整', '離題', '其他'].map((opt) => (
                                     <button
                                       key={opt}
                                       onClick={() => {
                                         setReportingIdx(null);
-                                        showNotification('Feedback received.', 'success');
+                                        showNotification('已收到你的回饋。', 'success');
                                       }}
                                       className="border-b border-slate-100 px-4 py-3 text-left text-xs font-medium text-slate-600 transition last:border-none hover:bg-slate-50"
                                     >
@@ -1171,21 +1176,21 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
           <div className="absolute inset-0 z-[70] flex items-center justify-center bg-slate-900/30 p-4">
             <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
               <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Approval</p>
-                <h3 className="text-xl font-semibold text-slate-900">Confirm profile update</h3>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">需要確認</p>
+                <h3 className="text-xl font-semibold text-slate-900">確認個人資料更新</h3>
                 <p className="text-sm text-slate-600">
-                  {pendingApproval.prompt || 'Please review the suggested profile changes before continuing.'}
+                  {pendingApproval.prompt || '請先確認建議更新的個人資料內容，再決定是否繼續。'}
                 </p>
                 {approvalActionId ? (
                   <p className="text-xs text-slate-400">approval_id: {approvalActionId}</p>
                 ) : (
-                  <p className="text-xs text-rose-500">approval_id is missing.</p>
+                  <p className="text-xs text-rose-500">缺少 approval_id。</p>
                 )}
               </div>
 
               {pendingApproval.proposalItems?.length > 0 && (
                 <div className="mt-4 max-h-52 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">proposal</p>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">更新內容</p>
                   <div className="space-y-2">
                     {pendingApproval.proposalItems.map((item) => (
                       <div key={`${item.field}-${item.value}`} className="grid grid-cols-[98px_76px_1fr] gap-2 text-sm">
@@ -1205,7 +1210,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                   disabled={isSubmittingApproval}
                   className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   type="button"
@@ -1213,7 +1218,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                   disabled={isSubmittingApproval || !approvalActionId}
                   className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                 >
-                  Reject
+                  拒絕
                 </button>
                 <button
                   type="button"
@@ -1221,7 +1226,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                   disabled={isSubmittingApproval || !approvalActionId}
                   className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
                 >
-                  {isSubmittingApproval ? 'Submitting...' : 'Approve'}
+                  {isSubmittingApproval ? '送出中...' : '同意'}
                 </button>
               </div>
             </div>
@@ -1285,7 +1290,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                   })}
                 </div>
                 <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400">
-                  Model
+                  模型
                 </span>
               </div>
 
@@ -1294,7 +1299,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                 value={question}
                 onChange={handleQuestionChange}
                 maxLength={QUESTION_MAX_LENGTH}
-                placeholder="Ask anything about meals, calories, nutrition, or your diet plan..."
+                placeholder="輸入你想詢問的飲食、熱量、營養或減重計畫問題..."
                 disabled={isThinking || isRoomLoading || !activeRoomId}
                 rows={Math.min(4, Math.max(1, question.split('\n').length))}
                 onKeyDown={(e) => {

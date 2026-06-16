@@ -8,6 +8,13 @@ export const normalizeModelSource = (value) => {
   return DEFAULT_MODEL_SOURCE;
 };
 
+export const resolveConsultStreamEventType = (payload, sseEventName = '') => {
+  const payloadType = typeof payload?.type === 'string' ? payload.type.trim().toLowerCase() : '';
+  if (payloadType) return payloadType;
+
+  return typeof sseEventName === 'string' ? sseEventName.trim().toLowerCase() : '';
+};
+
 export const buildConsultChatPayload = ({
   message,
   roomId,
