@@ -8,7 +8,13 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { buildApiUrl } from '@/lib/api';
-import { buildConsultChatPayload, DEFAULT_MODEL_SOURCE, resolveConsultStreamEventType } from '@/lib/consultChat';
+import {
+  appendAssistantChunk,
+  buildConsultChatPayload,
+  DEFAULT_MODEL_SOURCE,
+  resolveConsultStreamEventType,
+  upsertAssistantMessage,
+} from '@/lib/consultChat';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -768,20 +774,11 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       }
 
       const appendAiMessage = (nextContent) => {
-        setChatHistory((prev) => {
-          const nextHistory = [...prev];
-          const lastMsg = nextHistory[nextHistory.length - 1];
-          const normalizedContent = typeof nextContent === 'string' ? nextContent : String(nextContent ?? '');
-          if (lastMsg?.role !== 'ai' && !normalizedContent) {
-            return nextHistory;
-          }
-          if (lastMsg?.role === 'ai') {
-            lastMsg.content = normalizedContent;
-          } else {
-            nextHistory.push({ role: 'ai', content: normalizedContent });
-          }
-          return nextHistory;
-        });
+        setChatHistory((prev) => upsertAssistantMessage(prev, nextContent));
+      };
+
+      const appendAiChunk = (delta) => {
+        setChatHistory((prev) => appendAssistantChunk(prev, delta));
       };
 
       const normalizeAgentStatus = (rawStatus) => {
@@ -825,7 +822,6 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         if (!reader) throw new Error('串流讀取失敗');
 
         const decoder = new TextDecoder('utf-8');
-        let aiFullResponse = '';
         let buffer = '';
 
         const applyChunk = (delta) => {
@@ -834,8 +830,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
           if (!trimmedDelta) return;
           // Filter backend metadata/debug lines that should not appear in chat bubbles.
           if (trimmedDelta.toLowerCase().startsWith('user message:')) return;
-          aiFullResponse += delta;
-          appendAiMessage(aiFullResponse);
+          appendAiChunk(delta);
         };
 
         const processEventBlock = (block) => {
@@ -877,13 +872,13 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             if (['answer', 'text', 'token'].includes(eventType)) {
               applyChunk(content);
             } else if (eventType === 'clear') {
-              aiFullResponse = '';
               appendAiMessage('');
             } else if (['status', 'tool'].includes(eventType)) {
               setAiStatus(normalizeAgentStatus(content));
             } else if (eventType === 'interrupt') {
               const approval = normalizeApproval(data);
               setPendingApproval(approval);
+              setIsThinking(false);
               setAiStatus('等待你確認個人資料更新');
             } else if (eventType === 'done') {
               const approvalPending =
@@ -892,12 +887,17 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                 ?? data?.result?.approval_pending
                 ?? data?.result?.approvalPending
                 ?? false;
+              setIsThinking(false);
               if (approvalPending) {
                 setPendingApproval(normalizeApproval(data));
                 setAiStatus('等待你確認個人資料更新');
+              } else {
+                setAiStatus('');
               }
             } else if (eventType === 'error') {
               const message = content || data?.message || data?.error || 'AI 回覆失敗，請稍後再試';
+              setIsThinking(false);
+              setAiStatus('');
               showNotification(String(message), 'error');
               appendErrorMessageToChat(String(message));
             } else if (!eventType && content) {

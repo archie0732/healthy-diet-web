@@ -15,6 +15,55 @@ export const resolveConsultStreamEventType = (payload, sseEventName = '') => {
   return typeof sseEventName === 'string' ? sseEventName.trim().toLowerCase() : '';
 };
 
+export const upsertAssistantMessage = (history, nextContent) => {
+  const nextHistory = [...history];
+  const lastMessage = nextHistory[nextHistory.length - 1];
+  const normalizedContent = typeof nextContent === 'string' ? nextContent : String(nextContent ?? '');
+
+  if (lastMessage?.role !== 'ai' && !normalizedContent) {
+    return nextHistory;
+  }
+
+  if (lastMessage?.role === 'ai') {
+    nextHistory[nextHistory.length - 1] = {
+      ...lastMessage,
+      content: normalizedContent,
+    };
+    return nextHistory;
+  }
+
+  return [...nextHistory, { role: 'ai', content: normalizedContent }];
+};
+
+export const appendAssistantChunk = (history, delta) => {
+  const normalizedDelta = typeof delta === 'string' ? delta : String(delta ?? '');
+  if (!normalizedDelta.trim()) return history;
+
+  const nextHistory = [...history];
+  const lastMessage = nextHistory[nextHistory.length - 1];
+
+  if (lastMessage?.role === 'ai') {
+    nextHistory[nextHistory.length - 1] = {
+      ...lastMessage,
+      content: `${lastMessage.content ?? ''}${normalizedDelta}`,
+    };
+    return nextHistory;
+  }
+
+  return [...nextHistory, { role: 'ai', content: normalizedDelta }];
+};
+
+export const buildConsultErrorMessage = (rawMessage) => {
+  const normalizedError =
+    typeof rawMessage === 'string'
+      ? rawMessage.trim()
+      : String(rawMessage ?? '').trim();
+
+  return normalizedError
+    ? `[System] AI reply failed: ${normalizedError}`
+    : '[System] AI reply failed. Please try again.';
+};
+
 export const buildConsultChatPayload = ({
   message,
   roomId,
