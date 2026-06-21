@@ -15,6 +15,16 @@ export const resolveConsultStreamEventType = (payload, sseEventName = '') => {
   return typeof sseEventName === 'string' ? sseEventName.trim().toLowerCase() : '';
 };
 
+export const shouldDisplayAssistantChunk = (delta) => {
+  const normalizedDelta = typeof delta === 'string' ? delta : String(delta ?? '');
+  const trimmedDelta = normalizedDelta.trim();
+
+  if (!trimmedDelta) return false;
+  if (trimmedDelta.toLowerCase().startsWith('user message:')) return false;
+
+  return true;
+};
+
 export const upsertAssistantMessage = (history, nextContent) => {
   const nextHistory = [...history];
   const lastMessage = nextHistory[nextHistory.length - 1];
@@ -37,7 +47,7 @@ export const upsertAssistantMessage = (history, nextContent) => {
 
 export const appendAssistantChunk = (history, delta) => {
   const normalizedDelta = typeof delta === 'string' ? delta : String(delta ?? '');
-  if (!normalizedDelta.trim()) return history;
+  if (!shouldDisplayAssistantChunk(normalizedDelta)) return history;
 
   const nextHistory = [...history];
   const lastMessage = nextHistory[nextHistory.length - 1];
@@ -51,6 +61,15 @@ export const appendAssistantChunk = (history, delta) => {
   }
 
   return [...nextHistory, { role: 'ai', content: normalizedDelta }];
+};
+
+export const ensureAssistantPlaceholder = (history) => {
+  const nextHistory = [...history];
+  const lastMessage = nextHistory[nextHistory.length - 1];
+
+  if (lastMessage?.role === 'ai') return nextHistory;
+
+  return [...nextHistory, { role: 'ai', content: '' }];
 };
 
 export const buildConsultErrorMessage = (rawMessage) => {

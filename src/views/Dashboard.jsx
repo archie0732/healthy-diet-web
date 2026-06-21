@@ -10,6 +10,10 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, Radar as RechartsRadar
 } from 'recharts';
 import { buildApiUrl } from '@/lib/api';
+import {
+  readDashboardAgentStatusCache,
+  writeDashboardAgentStatusCache,
+} from '@/lib/dashboardAgentStatusCache';
 import { useLocation } from 'react-router-dom';
 import { beginDashboardPingCycle, endDashboardPingCycle } from '@/lib/dashboardPingGate';
 
@@ -73,8 +77,12 @@ const normalizeAnnouncementPayload = (payload) => {
   return { id: stableId, title, updates };
 };
 
+const CHATBOT_CHECKING_STATUS = { tone: 'checking', label: '檢查中...', detail: '' };
+const GEMMA_CHECKING_STATUS = { tone: 'checking', label: '檢查中...', detail: '' };
+
 const Dashboard = ({ user, apiFetch }) => {
   const location = useLocation();
+  const loginNonce = sessionStorage.getItem('authLoginNonce') || 'default';
   const [dietRecords, setDietRecords] = useState([]);
   const [_1, setLoading] = useState(true);
   const [_, setShowWelcomeModal] = useState(false);
@@ -85,8 +93,8 @@ const Dashboard = ({ user, apiFetch }) => {
   const [imageFetchStatus, setImageFetchStatus] = useState('idle');
   const [visitStats, setVisitStats] = useState([]);
   const [todayVisit, setTodayVisit] = useState(0);
-  const [chatbotStatus, setChatbotStatus] = useState({ tone: 'checking', label: '檢查中...', detail: '' });
-  const [gemmaStatus, setGemmaStatus] = useState({ tone: 'checking', label: '檢查中...', detail: '' });
+  const [chatbotStatus, setChatbotStatus] = useState(CHATBOT_CHECKING_STATUS);
+  const [gemmaStatus, setGemmaStatus] = useState(GEMMA_CHECKING_STATUS);
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [announcement, setAnnouncement] = useState(null);
@@ -95,7 +103,6 @@ const Dashboard = ({ user, apiFetch }) => {
   const fetchAnnouncementForDashboard = async () => {
     const endpoints = [buildApiUrl('/api/announcements/current')];
     const token = localStorage.getItem('token');
-    const loginNonce = sessionStorage.getItem('authLoginNonce') || 'default';
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     for (const endpoint of endpoints) {
@@ -127,6 +134,14 @@ const Dashboard = ({ user, apiFetch }) => {
     fetchAnnouncementForDashboard();
     fetchDashboardData();
 
+    const cachedAgentStatuses = readDashboardAgentStatusCache(loginNonce, sessionStorage);
+    if (cachedAgentStatuses) {
+      setChatbotStatus(cachedAgentStatuses.chatbotStatus);
+      setGemmaStatus(cachedAgentStatuses.gemmaStatus);
+    } else {
+      fetchAgentStatuses();
+    }
+
     return () => {
       endDashboardPingCycle(location.key);
     };
@@ -134,9 +149,28 @@ const Dashboard = ({ user, apiFetch }) => {
 
   const fetchDashboardData = async () => {
     try {
+      const [dietResult, statsResult] = await Promise.allSettled([
+        apiFetch('/api/diet_record', { method: 'GET' }),
+        apiFetch('/api/month_stats'),
+      ]);
+
+      if (dietResult.status === 'fulfilled' && Array.isArray(dietResult.value)) {
+        setDietRecords(dietResult.value);
+      }
+
+      if (statsResult.status === 'fulfilled' && Array.isArray(statsResult.value)) {
+        setVisitStats(statsResult.value);
+        if (statsResult.value.length > 0) setTodayVisit(statsResult.value[statsResult.value.length - 1].visit_count);
+      }
+    } catch (err) { console.error(err); } finally { setLoading(false); }
+  };
+
+  const fetchAgentStatuses = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
       const chatCheckRequest = async () => {
-        const token = localStorage.getItem('token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const response = await fetch(buildApiUrl('/api/chat_check'), { headers });
         const rawText = await response.text();
         let data = {};
@@ -153,8 +187,6 @@ const Dashboard = ({ user, apiFetch }) => {
       };
 
       const gemmaHealthRequest = async () => {
-        const token = localStorage.getItem('token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const response = await fetch(buildApiUrl('/api/gemma4/health'), { headers });
         const rawText = await response.text();
         let data = {};
@@ -172,22 +204,12 @@ const Dashboard = ({ user, apiFetch }) => {
         return { ok: response.ok, http_status: response.status, ...data };
       };
 
-      const [dietResult, statsResult, chatCheckResult, gemmaHealthResult] = await Promise.allSettled([
-        apiFetch('/api/diet_record', { method: 'GET' }),
-        apiFetch('/api/month_stats'),
+      const [chatCheckResult, gemmaHealthResult] = await Promise.allSettled([
         chatCheckRequest(),
         gemmaHealthRequest(),
       ]);
 
-      if (dietResult.status === 'fulfilled' && Array.isArray(dietResult.value)) {
-        setDietRecords(dietResult.value);
-      }
-
-      if (statsResult.status === 'fulfilled' && Array.isArray(statsResult.value)) {
-        setVisitStats(statsResult.value);
-        if (statsResult.value.length > 0) setTodayVisit(statsResult.value[statsResult.value.length - 1].visit_count);
-      }
-
+      let nextChatbotStatus = CHATBOT_CHECKING_STATUS;
       if (chatCheckResult.status === 'fulfilled') {
         const data = chatCheckResult.value || {};
         const httpStatus = Number(data?.pingStatusCode ?? data?.http_status) || 0;
@@ -199,38 +221,45 @@ const Dashboard = ({ user, apiFetch }) => {
           '';
         const detail = [`HTTP ${httpStatus || 'N/A'}`, detailMessage].filter(Boolean).join(' | ');
 
-        if (data?.proxyChatAvailable === true || data?.pingOk === true || (httpStatus >= 200 && httpStatus < 300)) {
-          setChatbotStatus({ tone: 'online', label: '運行中', detail: '' });
-        } else {
-          setChatbotStatus({ tone: 'offline', label: '離線', detail: detail || '無法連線到聊天機器人' });
-        }
+        nextChatbotStatus =
+          (data?.proxyChatAvailable === true || data?.pingOk === true || (httpStatus >= 200 && httpStatus < 300))
+            ? { tone: 'online', label: '運行中', detail: '' }
+            : { tone: 'offline', label: '離線', detail: detail || '無法連線到聊天機器人' };
       } else {
         const reasonMessage =
           (typeof chatCheckResult.reason?.message === 'string' && chatCheckResult.reason.message) ||
           String(chatCheckResult.reason || '未知錯誤');
         console.error(chatCheckResult.reason);
-        setChatbotStatus({ tone: 'offline', label: '檢查失敗', detail: `HTTP N/A | ${reasonMessage}` });
+        nextChatbotStatus = { tone: 'offline', label: '檢查失敗', detail: `HTTP N/A | ${reasonMessage}` };
       }
 
+      let nextGemmaStatus = GEMMA_CHECKING_STATUS;
       if (gemmaHealthResult.status === 'fulfilled') {
         const data = gemmaHealthResult.value || {};
         const apiHttpStatus = Number(data?.httpStatusCode ?? data?.status ?? data?.http_status ?? 0);
         const detailMessage = typeof data?.message === 'string' ? data.message.trim() : '';
         const detail = [`HTTP ${apiHttpStatus || 'N/A'}`, detailMessage].filter(Boolean).join(' | ');
 
-        if (data?.running === true || apiHttpStatus === 200) {
-          setGemmaStatus({ tone: 'online', label: '運行中', detail: '' });
-        } else {
-          setGemmaStatus({ tone: 'offline', label: '連線失敗', detail: detail || '無法連線到 gemma4 服務' });
-        }
+        nextGemmaStatus = (data?.running === true || apiHttpStatus === 200)
+          ? { tone: 'online', label: '運行中', detail: '' }
+          : { tone: 'offline', label: '連線失敗', detail: detail || '無法連線到 gemma4 服務' };
       } else {
         const reasonMessage =
           (typeof gemmaHealthResult.reason?.message === 'string' && gemmaHealthResult.reason.message) ||
           String(gemmaHealthResult.reason || '未知錯誤');
         console.error(gemmaHealthResult.reason);
-        setGemmaStatus({ tone: 'offline', label: '連線失敗', detail: `HTTP N/A | ${reasonMessage}` });
+        nextGemmaStatus = { tone: 'offline', label: '連線失敗', detail: `HTTP N/A | ${reasonMessage}` };
       }
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+
+      setChatbotStatus(nextChatbotStatus);
+      setGemmaStatus(nextGemmaStatus);
+      writeDashboardAgentStatusCache(loginNonce, {
+        chatbotStatus: nextChatbotStatus,
+        gemmaStatus: nextGemmaStatus,
+      }, sessionStorage);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const latestMeal = dietRecords[0];

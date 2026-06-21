@@ -6,8 +6,10 @@ import {
   buildConsultErrorMessage,
   buildConsultChatPayload,
   DEFAULT_MODEL_SOURCE,
+  ensureAssistantPlaceholder,
   normalizeModelSource,
   resolveConsultStreamEventType,
+  shouldDisplayAssistantChunk,
   upsertAssistantMessage,
 } from './consultChat.js';
 
@@ -119,6 +121,29 @@ test('appendAssistantChunk appends successive SSE text chunks into one assistant
     { role: 'user', content: 'Breakfast ideas?' },
     { role: 'ai', content: 'Start with protein and fiber.' },
   ]);
+});
+
+test('ensureAssistantPlaceholder creates a single empty ai bubble while streaming starts', () => {
+  const history = [{ role: 'user', content: '今天早餐吃了什麼' }];
+
+  assert.deepEqual(ensureAssistantPlaceholder(history), [
+    { role: 'user', content: '今天早餐吃了什麼' },
+    { role: 'ai', content: '' },
+  ]);
+
+  assert.deepEqual(ensureAssistantPlaceholder([
+    { role: 'user', content: '今天早餐吃了什麼' },
+    { role: 'ai', content: '' },
+  ]), [
+    { role: 'user', content: '今天早餐吃了什麼' },
+    { role: 'ai', content: '' },
+  ]);
+});
+
+test('shouldDisplayAssistantChunk only allows visible reply text into the ai bubble', () => {
+  assert.equal(shouldDisplayAssistantChunk('你今天早餐'), true);
+  assert.equal(shouldDisplayAssistantChunk(' User message: 今天早餐吃了什麼 '), false);
+  assert.equal(shouldDisplayAssistantChunk('   '), false);
 });
 
 test('buildConsultErrorMessage formats a visible assistant error bubble', () => {

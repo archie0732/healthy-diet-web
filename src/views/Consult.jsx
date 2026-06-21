@@ -12,7 +12,9 @@ import {
   appendAssistantChunk,
   buildConsultChatPayload,
   DEFAULT_MODEL_SOURCE,
+  ensureAssistantPlaceholder,
   resolveConsultStreamEventType,
+  shouldDisplayAssistantChunk,
   upsertAssistantMessage,
 } from '@/lib/consultChat';
 
@@ -38,7 +40,8 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isThinking, setIsThinking] = useState(false);
 
-  const [aiStatus, setAiStatus] = useState('');
+  const [aiStatusType, setAiStatusType] = useState('');
+  const [aiStatusContent, setAiStatusContent] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [reportingIdx, setReportingIdx] = useState(null);
 
@@ -320,7 +323,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     scrollToBottom('smooth');
     const timer = setTimeout(() => scrollToBottom('auto'), 100);
     return () => clearTimeout(timer);
-  }, [chatHistory, isThinking, aiStatus]);
+  }, [chatHistory, isThinking, aiStatusType, aiStatusContent]);
 
   const handleNewChat = () => {
     const firstDraft = rooms.find((room) => room.isDraft);
@@ -702,12 +705,14 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     latestThreadIdRef.current = null;
     latestApprovalIdRef.current = null;
     setIsThinking(true);
-    setAiStatus('連線中...');
+    setAiStatusType('status');
+    setAiStatusContent('連線中...');
 
     if (!authToken) {
       showNotification('登入已失效，請重新登入。', 'error');
       setIsThinking(false);
-      setAiStatus('');
+      setAiStatusType('');
+      setAiStatusContent('');
       return;
     }
 
@@ -718,14 +723,14 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     const knownThreadId = resolveThreadId(targetRoomId);
     latestThreadIdRef.current = knownThreadId;
 
-    setChatHistory((prev) => [
+    setChatHistory((prev) => ensureAssistantPlaceholder([
       ...prev,
       {
         role: 'user',
         content: newQ || '(圖片)',
         image: currentImg,
       },
-    ]);
+    ]));
 
     try {
       const payload = buildConsultChatPayload({
@@ -781,16 +786,8 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         setChatHistory((prev) => appendAssistantChunk(prev, delta));
       };
 
-      const normalizeAgentStatus = (rawStatus) => {
-        const text = String(rawStatus || '').trim();
-        if (!text) return 'AI 思考中...';
-        if (text.toLowerCase().startsWith('user message:')) {
-          return '已收到你的問題，AI 正在分析...';
-        }
-        return text;
-      };
-
-      setAiStatus('AI 思考中...');
+      setAiStatusType('status');
+      setAiStatusContent('AI 思考中...');
 
       const contentType = response.headers.get('content-type') || '';
       const isEventStream = contentType.includes('text/event-stream');
@@ -813,7 +810,8 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
         if (approvalPending) {
           setPendingApproval(normalizeApproval(data));
-          setAiStatus('等待你確認個人資料更新');
+          setAiStatusType('interrupt');
+          setAiStatusContent('等待你確認個人資料更新');
         } else {
           appendAiMessage(String(reply || ''));
         }
@@ -826,10 +824,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
         const applyChunk = (delta) => {
           if (!delta) return;
-          const trimmedDelta = String(delta).trim();
-          if (!trimmedDelta) return;
-          // Filter backend metadata/debug lines that should not appear in chat bubbles.
-          if (trimmedDelta.toLowerCase().startsWith('user message:')) return;
+          if (!shouldDisplayAssistantChunk(delta)) return;
           appendAiChunk(delta);
         };
 
@@ -874,12 +869,14 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             } else if (eventType === 'clear') {
               appendAiMessage('');
             } else if (['status', 'tool'].includes(eventType)) {
-              setAiStatus(normalizeAgentStatus(content));
+              setAiStatusType(eventType);
+              setAiStatusContent(content || 'AI 思考中...');
             } else if (eventType === 'interrupt') {
               const approval = normalizeApproval(data);
               setPendingApproval(approval);
               setIsThinking(false);
-              setAiStatus('等待你確認個人資料更新');
+              setAiStatusType('interrupt');
+              setAiStatusContent(approval?.prompt || content || '等待你確認個人資料更新');
             } else if (eventType === 'done') {
               const approvalPending =
                 data?.approval_pending
@@ -890,14 +887,17 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               setIsThinking(false);
               if (approvalPending) {
                 setPendingApproval(normalizeApproval(data));
-                setAiStatus('等待你確認個人資料更新');
+                setAiStatusType('interrupt');
+                setAiStatusContent('等待你確認個人資料更新');
               } else {
-                setAiStatus('');
+                setAiStatusType('');
+                setAiStatusContent('');
               }
             } else if (eventType === 'error') {
               const message = content || data?.message || data?.error || 'AI 回覆失敗，請稍後再試';
               setIsThinking(false);
-              setAiStatus('');
+              setAiStatusType('');
+              setAiStatusContent('');
               showNotification(String(message), 'error');
               appendErrorMessageToChat(String(message));
             } else if (!eventType && content) {
@@ -931,7 +931,8 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       appendErrorMessageToChat(errorMessage);
     } finally {
       setIsThinking(false);
-      setAiStatus('');
+      setAiStatusType('');
+      setAiStatusContent('');
     }
   };
 
@@ -1100,11 +1101,21 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                             className="max-w-[220px] rounded-2xl border border-slate-200 object-cover sm:max-w-[320px]"
                           />
                         )}
+                        {idx === chatHistory.length - 1 && (aiStatusType || aiStatusContent) && (
+                          <div className="inline-flex flex-wrap items-center gap-2 self-start rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700">
+                            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span className="rounded-full bg-white/80 px-2 py-0.5 font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                              {aiStatusType || 'status'}
+                            </span>
+                            <span>{aiStatusContent || 'AI 思考中...'}</span>
+                          </div>
+                        )}
                         <div className="rounded-[22px] rounded-tl-md border border-slate-200 bg-white px-5 py-4 text-sm leading-6 text-slate-700 shadow-sm sm:text-[15px]">
                           {!msg.content || msg.content === '' ? (
-                            <span className="flex items-center gap-2 font-medium text-slate-500">
-                              <span className="inline-block h-2 w-2 rounded-full bg-slate-400 animate-pulse"></span>
-                              <span>{aiStatus || 'AI 思考中...'}</span>
+                            <span className="flex items-center gap-2 font-medium text-slate-400">
+                              <span className="inline-block h-2.5 w-2.5 rounded-full bg-slate-300 animate-pulse"></span>
+                              <span className="inline-block h-2.5 w-2.5 rounded-full bg-slate-300 animate-pulse [animation-delay:150ms]"></span>
+                              <span className="inline-block h-2.5 w-2.5 rounded-full bg-slate-300 animate-pulse [animation-delay:300ms]"></span>
                             </span>
                           ) : (
                             <div className="prose prose-slate max-w-none prose-headings:border-b prose-headings:border-slate-200 prose-headings:pb-2 prose-headings:font-semibold prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700 prose-a:text-blue-600 prose-strong:text-slate-900 prose-code:rounded prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-pre:bg-slate-900 prose-pre:text-slate-50 prose-th:border prose-th:border-slate-300 prose-th:bg-slate-100 prose-th:p-2 prose-td:border prose-td:border-slate-200 prose-td:p-2 sm:prose-base">
@@ -1159,15 +1170,6 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                   )}
                 </div>
               ))}
-
-              {isThinking && aiStatus && (
-                <div className="pl-12">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                    <BrainCircuit size={14} className="animate-pulse" />
-                    <span>{aiStatus}</span>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
