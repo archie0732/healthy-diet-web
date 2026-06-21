@@ -10,6 +10,8 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, Radar as RechartsRadar
 } from 'recharts';
 import { buildApiUrl } from '@/lib/api';
+import { useLocation } from 'react-router-dom';
+import { beginDashboardPingCycle, endDashboardPingCycle } from '@/lib/dashboardPingGate';
 
 // 修正 Safari 對日期格式的解析相容性
 const safeParseDate = (dateString) => {
@@ -72,6 +74,7 @@ const normalizeAnnouncementPayload = (payload) => {
 };
 
 const Dashboard = ({ user, apiFetch }) => {
+  const location = useLocation();
   const [dietRecords, setDietRecords] = useState([]);
   const [_1, setLoading] = useState(true);
   const [_, setShowWelcomeModal] = useState(false);
@@ -117,9 +120,17 @@ const Dashboard = ({ user, apiFetch }) => {
   };
 
   useEffect(() => {
+    if (!beginDashboardPingCycle(location.key)) {
+      return undefined;
+    }
+
     fetchAnnouncementForDashboard();
     fetchDashboardData();
-  }, []);
+
+    return () => {
+      endDashboardPingCycle(location.key);
+    };
+  }, [location.key]);
 
   const fetchDashboardData = async () => {
     try {
