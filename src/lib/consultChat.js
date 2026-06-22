@@ -15,6 +15,146 @@ export const resolveConsultStreamEventType = (payload, sseEventName = '') => {
   return typeof sseEventName === 'string' ? sseEventName.trim().toLowerCase() : '';
 };
 
+export const parseConsultSseEventBlock = (block) => {
+  if (typeof block !== 'string') return null;
+
+  const lines = block
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return null;
+
+  let id = '';
+  let event = '';
+  const dataLines = [];
+
+  for (const line of lines) {
+    if (line.startsWith('id:')) {
+      id = line.slice(3).trim();
+      continue;
+    }
+
+    if (line.startsWith('event:')) {
+      event = line.slice(6).trim();
+      continue;
+    }
+
+    if (line.startsWith('data:')) {
+      dataLines.push(line.slice(5).trim());
+    }
+  }
+
+  if (dataLines.length === 0) return null;
+
+  const payloadText = dataLines.join('\n');
+  if (!payloadText || payloadText === '[DONE]') return null;
+
+  try {
+    const payload = JSON.parse(payloadText);
+    return {
+      id,
+      event,
+      payload,
+      payloadText,
+      type: resolveConsultStreamEventType(payload, event),
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const consumeConsultStreamChunk = (buffer, chunk) => {
+  const nextBuffer = `${typeof buffer === 'string' ? buffer : ''}${typeof chunk === 'string' ? chunk : String(chunk ?? '')}`;
+  const blocks = nextBuffer.split(/\r?\n\r?\n/);
+  const trailingBuffer = blocks.pop() ?? '';
+
+  return {
+    buffer: trailingBuffer,
+    events: blocks
+      .map(parseConsultSseEventBlock)
+      .filter(Boolean),
+  };
+};
+
+export const parseConsultToolStatus = (content) => {
+  const normalizedContent = typeof content === 'string' ? content.trim() : String(content ?? '').trim();
+  if (!normalizedContent) return null;
+
+  const resultMatch = normalizedContent.match(/^Tool\s+(.+?)\s+result:\s*(.+)$/i);
+  if (resultMatch) {
+    return {
+      name: resultMatch[1].trim(),
+      status: 'success',
+      result: resultMatch[2].trim(),
+    };
+  }
+
+  const statusMatch = normalizedContent.match(/^Tool\s+(.+?):\s*(running|success|error|failed)$/i);
+  if (!statusMatch) return null;
+
+  const normalizedStatus = statusMatch[2].trim().toLowerCase();
+  return {
+    name: statusMatch[1].trim(),
+    status: normalizedStatus === 'failed' ? 'error' : normalizedStatus,
+    result: '',
+  };
+};
+
+export const mergeConsultToolCall = (toolCalls, nextToolCall) => {
+  const currentToolCalls = Array.isArray(toolCalls) ? toolCalls : [];
+  if (!nextToolCall?.name) return currentToolCalls;
+
+  const nextName = String(nextToolCall.name).trim();
+  if (!nextName) return currentToolCalls;
+
+  const normalizedNextToolCall = {
+    name: nextName,
+    status: typeof nextToolCall.status === 'string' && nextToolCall.status.trim()
+      ? nextToolCall.status.trim().toLowerCase()
+      : 'running',
+    result: typeof nextToolCall.result === 'string' ? nextToolCall.result : String(nextToolCall.result ?? ''),
+  };
+
+  const existingIndex = currentToolCalls.findIndex((toolCall) => toolCall?.name === nextName);
+  if (existingIndex === -1) {
+    return [...currentToolCalls, normalizedNextToolCall];
+  }
+
+  const nextToolCalls = [...currentToolCalls];
+  const existingToolCall = nextToolCalls[existingIndex] ?? {};
+  nextToolCalls[existingIndex] = {
+    ...existingToolCall,
+    ...normalizedNextToolCall,
+    result: normalizedNextToolCall.result || existingToolCall.result || '',
+  };
+  return nextToolCalls;
+};
+
+export const normalizeToolCallsFromDoneEvent = (payload) => {
+  const rawTools = Array.isArray(payload?.tools)
+    ? payload.tools
+    : Array.isArray(payload?.result?.tools)
+      ? payload.result.tools
+      : [];
+
+  return rawTools
+    .map((tool) => {
+      if (!tool || typeof tool !== 'object') return null;
+      const name = typeof tool.name === 'string' ? tool.name.trim() : '';
+      if (!name) return null;
+
+      return {
+        name,
+        status: typeof tool.status === 'string' && tool.status.trim()
+          ? tool.status.trim().toLowerCase()
+          : 'success',
+        result: typeof tool.result === 'string' ? tool.result : String(tool.result ?? ''),
+      };
+    })
+    .filter(Boolean);
+};
+
 export const shouldDisplayAssistantChunk = (delta) => {
   const normalizedDelta = typeof delta === 'string' ? delta : String(delta ?? '');
   const trimmedDelta = normalizedDelta.trim();

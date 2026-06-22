@@ -68,5 +68,55 @@ class BuildTargetUrlTests(unittest.TestCase):
         self.assertEqual(build_target_url("openapi.yml"), f"{TARGET_API_SERVER}/openapi.yml")
 
 
+class ProxyStreamingTests(unittest.TestCase):
+    def test_text_event_stream_responses_are_forwarded_as_streams(self):
+        captured = {}
+
+        class FakeUpstreamResponse:
+            status_code = 200
+            headers = {"Content-Type": "text/event-stream"}
+            content = b"buffered-content-should-not-be-used"
+
+            def iter_content(self, chunk_size=8192):
+                yield b"event: text\n"
+                yield b'data: {"type":"text","content":"hi"}\n\n'
+
+        class FakeFlaskResponse:
+            def __init__(self, response, status, headers):
+                captured["response"] = response
+                captured["status"] = status
+                captured["headers"] = headers
+                self.response = response
+                self.status = status
+                self.headers = headers
+
+        index_module.request = types.SimpleNamespace(
+            method="POST",
+            headers={},
+            files={},
+            form={},
+            get_data=lambda: b'{"message":"hi"}',
+        )
+
+        def fake_request(*args, **kwargs):
+            captured["request_kwargs"] = kwargs
+            return FakeUpstreamResponse()
+
+        index_module.requests.request = fake_request
+        index_module.Response = FakeFlaskResponse
+
+        result = index_module.proxy("api/chat")
+
+        self.assertIsInstance(result, FakeFlaskResponse)
+        self.assertTrue(captured["request_kwargs"]["stream"])
+        self.assertEqual(captured["status"], 200)
+        self.assertIn(("Content-Type", "text/event-stream"), captured["headers"])
+        streamed_chunks = list(captured["response"])
+        self.assertEqual(
+            streamed_chunks,
+            [b"event: text\n", b'data: {"type":"text","content":"hi"}\n\n'],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

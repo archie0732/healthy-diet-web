@@ -5,9 +5,14 @@ import {
   appendAssistantChunk,
   buildConsultErrorMessage,
   buildConsultChatPayload,
+  consumeConsultStreamChunk,
   DEFAULT_MODEL_SOURCE,
   ensureAssistantPlaceholder,
+  mergeConsultToolCall,
   normalizeModelSource,
+  normalizeToolCallsFromDoneEvent,
+  parseConsultSseEventBlock,
+  parseConsultToolStatus,
   resolveConsultStreamEventType,
   shouldDisplayAssistantChunk,
   upsertAssistantMessage,
@@ -157,5 +162,126 @@ test('buildConsultErrorMessage falls back to a default visible message', () => {
   assert.equal(
     buildConsultErrorMessage(''),
     '[System] AI reply failed. Please try again.',
+  );
+});
+
+test('parseConsultSseEventBlock parses text and status SSE payloads', () => {
+  const textEvent = parseConsultSseEventBlock([
+    'event: text',
+    'data: {"type":"text","content":"你今天的"}',
+  ].join('\n'));
+
+  assert.deepEqual(textEvent, {
+    id: '',
+    event: 'text',
+    payload: {
+      type: 'text',
+      content: '你今天的',
+    },
+    payloadText: '{"type":"text","content":"你今天的"}',
+    type: 'text',
+  });
+
+  const statusEvent = parseConsultSseEventBlock([
+    'event: status',
+    'data: {"type":"status","content":"Tool analyze_food_image: running"}',
+  ].join('\n'));
+
+  assert.equal(statusEvent.type, 'status');
+  assert.equal(statusEvent.payload.content, 'Tool analyze_food_image: running');
+});
+
+test('consumeConsultStreamChunk emits complete SSE events and preserves trailing buffer', () => {
+  const firstPass = consumeConsultStreamChunk('', [
+    'event: text',
+    'data: {"type":"text","content":"午餐整體"}',
+    '',
+    'event: status',
+  ].join('\n'));
+
+  assert.equal(firstPass.events.length, 1);
+  assert.equal(firstPass.events[0].payload.content, '午餐整體');
+  assert.equal(firstPass.buffer, 'event: status');
+
+  const secondPass = consumeConsultStreamChunk(firstPass.buffer, [
+    '',
+    'data: {"type":"status","content":"Tool analyze_food_image: success"}',
+    '',
+    '',
+  ].join('\n'));
+
+  assert.equal(secondPass.events.length, 1);
+  assert.equal(secondPass.events[0].payload.content, 'Tool analyze_food_image: success');
+  assert.equal(secondPass.buffer, '');
+});
+
+test('parseConsultToolStatus extracts tool running, success, and result updates', () => {
+  assert.deepEqual(
+    parseConsultToolStatus('Tool analyze_food_image: running'),
+    {
+      name: 'analyze_food_image',
+      status: 'running',
+      result: '',
+    },
+  );
+
+  assert.deepEqual(
+    parseConsultToolStatus('Tool analyze_food_image result: dish_name=雞胸便當, calories=620'),
+    {
+      name: 'analyze_food_image',
+      status: 'success',
+      result: 'dish_name=雞胸便當, calories=620',
+    },
+  );
+});
+
+test('mergeConsultToolCall updates an existing tool entry without duplicating it', () => {
+  const running = mergeConsultToolCall([], {
+    name: 'analyze_food_image',
+    status: 'running',
+    result: '',
+  });
+
+  assert.deepEqual(running, [
+    {
+      name: 'analyze_food_image',
+      status: 'running',
+      result: '',
+    },
+  ]);
+
+  const finished = mergeConsultToolCall(running, {
+    name: 'analyze_food_image',
+    status: 'success',
+    result: 'dish_name=雞胸便當, calories=620',
+  });
+
+  assert.deepEqual(finished, [
+    {
+      name: 'analyze_food_image',
+      status: 'success',
+      result: 'dish_name=雞胸便當, calories=620',
+    },
+  ]);
+});
+
+test('normalizeToolCallsFromDoneEvent prefers the done payload tool summary', () => {
+  assert.deepEqual(
+    normalizeToolCallsFromDoneEvent({
+      tools: [
+        {
+          name: 'analyze_food_image',
+          status: 'success',
+          result: 'dish_name=雞胸便當, calories=620',
+        },
+      ],
+    }),
+    [
+      {
+        name: 'analyze_food_image',
+        status: 'success',
+        result: 'dish_name=雞胸便當, calories=620',
+      },
+    ],
   );
 });

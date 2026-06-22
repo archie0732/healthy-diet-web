@@ -11,8 +11,12 @@ import { buildApiUrl } from '@/lib/api';
 import {
   appendAssistantChunk,
   buildConsultChatPayload,
+  consumeConsultStreamChunk,
   DEFAULT_MODEL_SOURCE,
   ensureAssistantPlaceholder,
+  mergeConsultToolCall,
+  normalizeToolCallsFromDoneEvent,
+  parseConsultToolStatus,
   resolveConsultStreamEventType,
   shouldDisplayAssistantChunk,
   upsertAssistantMessage,
@@ -42,6 +46,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
   const [aiStatusType, setAiStatusType] = useState('');
   const [aiStatusContent, setAiStatusContent] = useState('');
+  const [toolCalls, setToolCalls] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [reportingIdx, setReportingIdx] = useState(null);
 
@@ -305,6 +310,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     };
     fetchHistory();
     setReportingIdx(null);
+    setToolCalls([]);
     setPendingApproval(null);
     latestThreadIdRef.current = activeRoomId ? (roomThreadIdMapRef.current[activeRoomId] ?? null) : null;
     latestApprovalIdRef.current = null;
@@ -332,6 +338,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       setChatHistory([]);
       setIsSidebarOpen(false);
       setSelectedImage(null);
+      setToolCalls([]);
       setPendingApproval(null);
       latestThreadIdRef.current = null;
       latestApprovalIdRef.current = null;
@@ -342,6 +349,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     setChatHistory([]);
     setIsSidebarOpen(false);
     setSelectedImage(null);
+    setToolCalls([]);
     setPendingApproval(null);
     latestApprovalIdRef.current = null;
     return newRoomId;
@@ -702,6 +710,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     setQuestion('');
     setSelectedImage(null);
     setPendingApproval(null);
+    setToolCalls([]);
     latestThreadIdRef.current = null;
     latestApprovalIdRef.current = null;
     setIsThinking(true);
@@ -815,6 +824,11 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         } else {
           appendAiMessage(String(reply || ''));
         }
+
+        const doneToolCalls = normalizeToolCallsFromDoneEvent(data);
+        if (doneToolCalls.length > 0) {
+          setToolCalls(doneToolCalls);
+        }
       } else {
         const reader = response.body?.getReader();
         if (!reader) throw new Error('串流讀取失敗');
@@ -870,6 +884,10 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               appendAiMessage('');
             } else if (['status', 'tool'].includes(eventType)) {
               setAiStatusType(eventType);
+              const nextToolCall = parseConsultToolStatus(content);
+              if (nextToolCall) {
+                setToolCalls((prev) => mergeConsultToolCall(prev, nextToolCall));
+              }
               setAiStatusContent(content || 'AI 思考中...');
             } else if (eventType === 'interrupt') {
               const approval = normalizeApproval(data);
@@ -884,6 +902,10 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                 ?? data?.result?.approval_pending
                 ?? data?.result?.approvalPending
                 ?? false;
+              const doneToolCalls = normalizeToolCallsFromDoneEvent(data);
+              if (doneToolCalls.length > 0) {
+                setToolCalls(doneToolCalls);
+              }
               setIsThinking(false);
               if (approvalPending) {
                 setPendingApproval(normalizeApproval(data));
@@ -913,14 +935,23 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
           const { value, done } = await reader.read();
           if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          const eventBlocks = buffer.split(/\r?\n\r?\n/);
-          buffer = eventBlocks.pop() ?? '';
-          eventBlocks.forEach(processEventBlock);
+          const chunkText = decoder.decode(value, { stream: true });
+          const consumed = consumeConsultStreamChunk(buffer, chunkText);
+          buffer = consumed.buffer;
+          consumed.events.forEach(({ payloadText }) => processEventBlock(
+            payloadText
+              ? payloadText.split('\n').map((line) => `data: ${line}`).join('\n')
+              : '',
+          ));
         }
 
         if (buffer.trim()) {
-          processEventBlock(buffer.trim());
+          const consumed = consumeConsultStreamChunk('', `${buffer}\n\n`);
+          consumed.events.forEach(({ payloadText }) => processEventBlock(
+            payloadText
+              ? payloadText.split('\n').map((line) => `data: ${line}`).join('\n')
+              : '',
+          ));
         }
       }
 
@@ -1108,6 +1139,30 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                               {aiStatusType || 'status'}
                             </span>
                             <span>{aiStatusContent || 'AI 思考中...'}</span>
+                          </div>
+                        )}
+                        {idx === chatHistory.length - 1 && toolCalls.length > 0 && (
+                          <div className="self-start rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                              Tools
+                            </div>
+                            <div className="space-y-2">
+                              {toolCalls.map((toolCall) => (
+                                <div key={toolCall.name} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span className="font-medium text-slate-700">{toolCall.name}</span>
+                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                      {toolCall.status}
+                                    </span>
+                                  </div>
+                                  {toolCall.result && (
+                                    <p className="mt-1 break-words text-[11px] leading-5 text-slate-500">
+                                      {toolCall.result}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                         <div className="rounded-[22px] rounded-tl-md border border-slate-200 bg-white px-5 py-4 text-sm leading-6 text-slate-700 shadow-sm sm:text-[15px]">
