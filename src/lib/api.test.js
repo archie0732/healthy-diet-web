@@ -1,37 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildApiUrl, resolveDirectApiBase, shouldUseDirectApi } from './api.js';
+import { buildApiUrl, resolveApiBase } from './api.js';
 
-test('resolveDirectApiBase trims trailing slashes from configured direct API base', () => {
+test('resolveApiBase trims trailing slashes from configured API base', () => {
   assert.equal(
-    resolveDirectApiBase({ VITE_DIRECT_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev///' }),
+    resolveApiBase({ VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev///' }),
     'https://daily-fezzed-larisa.ngrok-free.dev',
   );
 });
 
-test('resolveDirectApiBase stays empty when direct upload is not explicitly configured', () => {
-  assert.equal(resolveDirectApiBase({}), '');
+test('resolveApiBase stays empty when API base is not configured', () => {
+  assert.equal(resolveApiBase({}), '');
 });
 
-test('buildApiUrl keeps ordinary endpoints on the Vercel proxy', () => {
+test('buildApiUrl sends ordinary endpoints directly to the configured API base', () => {
   assert.equal(
-    buildApiUrl('/api/user/profile', { VITE_DIRECT_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev' }),
-    '/backend/api/user/profile',
+    buildApiUrl('/api/user/profile', { VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev' }),
+    'https://daily-fezzed-larisa.ngrok-free.dev/api/user/profile',
   );
 });
 
-test('shouldUseDirectApi enables direct origin only for the RAG document upload endpoint', () => {
-  const env = { VITE_DIRECT_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev' };
-
-  assert.equal(shouldUseDirectApi('/admin/rag/documents', env), true);
-  assert.equal(shouldUseDirectApi('/admin/rag/documents/doc-1/file', env), false);
-  assert.equal(shouldUseDirectApi('/admin/announcements', env), false);
-});
-
-test('buildApiUrl sends RAG document upload requests directly to the backend origin', () => {
+test('buildApiUrl sends every path directly to the configured API base', () => {
   assert.equal(
-    buildApiUrl('/admin/rag/documents', { VITE_DIRECT_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev/' }),
+    buildApiUrl('/admin/rag/documents', { VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev/' }),
     'https://daily-fezzed-larisa.ngrok-free.dev/admin/rag/documents',
+  );
+  assert.equal(
+    buildApiUrl('api/chat', { VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev/' }),
+    'https://daily-fezzed-larisa.ngrok-free.dev/api/chat',
   );
 });
