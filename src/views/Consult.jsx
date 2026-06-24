@@ -15,6 +15,7 @@ import {
   DEFAULT_MODEL_SOURCE,
   ensureAssistantPlaceholder,
   mergeConsultToolCall,
+  normalizeConsultStreamEvent,
   normalizeToolCallsFromDoneEvent,
   parseConsultToolStatus,
   resolveConsultStreamEventType,
@@ -930,6 +931,68 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             // Ignore malformed chunks instead of showing broken raw payload text.
           }
         };
+        void processEventBlock;
+
+        const processStreamEvent = (event) => {
+          const normalizedEvent = normalizeConsultStreamEvent(event);
+          if (!normalizedEvent) return;
+
+          const data = normalizedEvent.payload;
+          const eventType = resolveConsultStreamEventType(data, normalizedEvent.type);
+          const content = normalizedEvent.content;
+          const eventThreadId = extractThreadIdFromData(data) ?? normalizeThreadId(normalizedEvent.id);
+          if (eventThreadId) {
+            rememberThreadId(eventThreadId, targetRoomId);
+          }
+
+          if (['answer', 'text', 'token'].includes(eventType)) {
+            applyChunk(content);
+          } else if (eventType === 'clear') {
+            appendAiMessage('');
+          } else if (['status', 'tool'].includes(eventType)) {
+            setAiStatusType(eventType);
+            const nextToolCall = parseConsultToolStatus(content);
+            if (nextToolCall) {
+              setToolCalls((prev) => mergeConsultToolCall(prev, nextToolCall));
+            }
+            setAiStatusContent(content || 'AI ?葉...');
+          } else if (eventType === 'interrupt') {
+            const approval = normalizeApproval(data);
+            setPendingApproval(approval);
+            setIsThinking(false);
+            setAiStatusType('interrupt');
+            setAiStatusContent(approval?.prompt || content || '蝑?雿Ⅱ隤犖鞈??湔');
+          } else if (eventType === 'done') {
+            const approvalPending =
+              data?.approval_pending
+              ?? data?.approvalPending
+              ?? data?.result?.approval_pending
+              ?? data?.result?.approvalPending
+              ?? false;
+            const doneToolCalls = normalizeToolCallsFromDoneEvent(data);
+            if (doneToolCalls.length > 0) {
+              setToolCalls(doneToolCalls);
+            }
+            setIsThinking(false);
+            if (approvalPending) {
+              setPendingApproval(normalizeApproval(data));
+              setAiStatusType('interrupt');
+              setAiStatusContent('蝑?雿Ⅱ隤犖鞈??湔');
+            } else {
+              setAiStatusType('');
+              setAiStatusContent('');
+            }
+          } else if (eventType === 'error') {
+            const message = content || data?.message || data?.error || 'AI ??憭望?嚗?蝔??岫';
+            setIsThinking(false);
+            setAiStatusType('');
+            setAiStatusContent('');
+            showNotification(String(message), 'error');
+            appendErrorMessageToChat(String(message));
+          } else if (!eventType && content) {
+            applyChunk(content);
+          }
+        };
 
         while (true) {
           const { value, done } = await reader.read();
@@ -938,20 +1001,12 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
           const chunkText = decoder.decode(value, { stream: true });
           const consumed = consumeConsultStreamChunk(buffer, chunkText);
           buffer = consumed.buffer;
-          consumed.events.forEach(({ payloadText }) => processEventBlock(
-            payloadText
-              ? payloadText.split('\n').map((line) => `data: ${line}`).join('\n')
-              : '',
-          ));
+          consumed.events.forEach(processStreamEvent);
         }
 
         if (buffer.trim()) {
           const consumed = consumeConsultStreamChunk('', `${buffer}\n\n`);
-          consumed.events.forEach(({ payloadText }) => processEventBlock(
-            payloadText
-              ? payloadText.split('\n').map((line) => `data: ${line}`).join('\n')
-              : '',
-          ));
+          consumed.events.forEach(processStreamEvent);
         }
       }
 

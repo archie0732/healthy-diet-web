@@ -9,6 +9,7 @@ import {
   DEFAULT_MODEL_SOURCE,
   ensureAssistantPlaceholder,
   mergeConsultToolCall,
+  normalizeConsultStreamEvent,
   normalizeModelSource,
   normalizeToolCallsFromDoneEvent,
   parseConsultSseEventBlock,
@@ -213,6 +214,28 @@ test('consumeConsultStreamChunk emits complete SSE events and preserves trailing
   assert.equal(secondPass.events.length, 1);
   assert.equal(secondPass.events[0].payload.content, 'Tool analyze_food_image: success');
   assert.equal(secondPass.buffer, '');
+});
+
+test('normalizeConsultStreamEvent preserves SSE event names when payload type is omitted', () => {
+  const parsedEvent = parseConsultSseEventBlock([
+    'id: thread-123',
+    'event: text',
+    'data: {"content":"早餐可以先補充蛋白質"}',
+  ].join('\n'));
+
+  assert.deepEqual(normalizeConsultStreamEvent(parsedEvent), {
+    id: 'thread-123',
+    type: 'text',
+    content: '早餐可以先補充蛋白質',
+    payload: {
+      content: '早餐可以先補充蛋白質',
+    },
+  });
+});
+
+test('normalizeConsultStreamEvent returns null for malformed events', () => {
+  assert.equal(normalizeConsultStreamEvent(null), null);
+  assert.equal(normalizeConsultStreamEvent({ payload: null }), null);
 });
 
 test('parseConsultToolStatus extracts tool running, success, and result updates', () => {

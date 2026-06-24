@@ -77,6 +77,19 @@ export const consumeConsultStreamChunk = (buffer, chunk) => {
   };
 };
 
+export const normalizeConsultStreamEvent = (event) => {
+  if (!event || typeof event !== 'object' || !event.payload || typeof event.payload !== 'object') {
+    return null;
+  }
+
+  return {
+    id: typeof event.id === 'string' ? event.id : '',
+    type: typeof event.type === 'string' ? event.type : '',
+    content: typeof event.payload.content === 'string' ? event.payload.content : '',
+    payload: event.payload,
+  };
+};
+
 export const parseConsultToolStatus = (content) => {
   const normalizedContent = typeof content === 'string' ? content.trim() : String(content ?? '').trim();
   if (!normalizedContent) return null;
