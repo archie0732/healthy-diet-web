@@ -31,6 +31,7 @@ test('buildConsultChatPayload includes selected model_source and thread_id', () 
     image: 'data:image/png;base64,abc',
     modelSource: 'google',
     threadId: 'thread-1',
+    isNewConversation: true,
     user: {
       name: 'Alice',
       gender: 'female',
@@ -46,6 +47,7 @@ test('buildConsultChatPayload includes selected model_source and thread_id', () 
     image: 'data:image/png;base64,abc',
     model_source: 'google',
     thread_id: 'thread-1',
+    is_new_conversation: true,
     user_context: {
       name: 'Alice',
       gender: 'female',
@@ -65,6 +67,7 @@ test('buildConsultChatPayload defaults model_source to auto', () => {
   });
 
   assert.equal(payload.model_source, 'auto');
+  assert.equal(payload.is_new_conversation, false);
   assert.equal(payload.user_context, null);
 });
 

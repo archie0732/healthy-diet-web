@@ -261,8 +261,10 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
   const addDraftRoom = () => {
     const draftId = generateUUID();
+    roomThreadIdMapRef.current[draftId] = draftId;
     setRooms((prev) => [{ id: draftId, title: '新聊天室', summary: null, isDraft: true }, ...prev]);
     setActiveRoomId(draftId);
+    latestThreadIdRef.current = draftId;
     return draftId;
   };
 
@@ -730,8 +732,13 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       targetRoomId = addDraftRoom();
     }
 
-    const knownThreadId = resolveThreadId(targetRoomId);
+    const currentRoom = rooms.find((room) => room.id === targetRoomId);
+    const isNewConversation = Boolean(currentRoom?.isDraft);
+    const knownThreadId = resolveThreadId(targetRoomId) ?? targetRoomId;
     latestThreadIdRef.current = knownThreadId;
+    if (targetRoomId) {
+      roomThreadIdMapRef.current[targetRoomId] = knownThreadId;
+    }
 
     setChatHistory((prev) => ensureAssistantPlaceholder([
       ...prev,
@@ -749,6 +756,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         image: currentImg,
         user,
         threadId: knownThreadId,
+        isNewConversation,
         modelSource,
       });
 

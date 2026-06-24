@@ -242,12 +242,14 @@ export const buildConsultChatPayload = ({
   image,
   user,
   threadId,
+  isNewConversation = false,
   modelSource,
 }) => {
   const payload = {
     message,
     room_id: roomId,
     image,
+    is_new_conversation: Boolean(isNewConversation),
     model_source: normalizeModelSource(modelSource),
     user_context: user
       ? {
