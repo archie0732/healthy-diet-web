@@ -23,10 +23,20 @@ export default defineConfig(({ mode }) => {
     },
     server: proxyTarget ? {
       proxy: {
-        '/api/backend': {
+        '/auth': {
           target: proxyTarget,
           changeOrigin: true,
-          rewrite: (requestPath) => requestPath.replace(/^\/api\/backend/, ''),
+        },
+        '/api/': {
+          target: proxyTarget,
+          changeOrigin: true,
+          rewrite: (requestPath) => requestPath.startsWith('/api/admin/')
+            ? requestPath.replace(/^\/api\/admin/, '/admin')
+            : requestPath,
+        },
+        '/openapi.yml': {
+          target: proxyTarget,
+          changeOrigin: true,
         }
       }
     } : undefined,
