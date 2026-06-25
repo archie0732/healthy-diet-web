@@ -41,7 +41,19 @@ export const parseConsultSseEventBlock = (block) => {
     }
 
     if (line.startsWith('data:')) {
-      dataLines.push(line.slice(5).trim());
+      const dataLine = line.slice(5).trim();
+
+      if (!event && dataLine.startsWith('event:')) {
+        event = dataLine.slice(6).trim();
+        continue;
+      }
+
+      if (!id && dataLine.startsWith('id:')) {
+        id = dataLine.slice(3).trim();
+        continue;
+      }
+
+      dataLines.push(dataLine);
     }
   }
 

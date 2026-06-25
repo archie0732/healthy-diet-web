@@ -195,6 +195,24 @@ test('parseConsultSseEventBlock parses text and status SSE payloads', () => {
   assert.equal(statusEvent.payload.content, 'Tool analyze_food_image: running');
 });
 
+test('parseConsultSseEventBlock supports event names tunneled through data lines', () => {
+  const event = parseConsultSseEventBlock([
+    'data: event: status',
+    'data: {"type":"status","content":"AI is preparing your response..."}',
+  ].join('\n'));
+
+  assert.deepEqual(event, {
+    id: '',
+    event: 'status',
+    payload: {
+      type: 'status',
+      content: 'AI is preparing your response...',
+    },
+    payloadText: '{"type":"status","content":"AI is preparing your response..."}',
+    type: 'status',
+  });
+});
+
 test('consumeConsultStreamChunk emits complete SSE events and preserves trailing buffer', () => {
   const firstPass = consumeConsultStreamChunk('', [
     'event: text',
