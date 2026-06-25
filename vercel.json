@@ -22,6 +22,9 @@
       "dest": "/api/proxy.js?path=openapi.yml"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

@@ -31,6 +31,9 @@ test('vercel routes send api traffic directly to the proxy function file', () =>
       dest: '/api/proxy.js?path=openapi.yml',
     },
     {
+      handle: 'filesystem',
+    },
+    {
       src: '/(.*)',
       dest: '/index.html',
     },
