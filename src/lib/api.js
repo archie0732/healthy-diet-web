@@ -3,7 +3,7 @@ const normalizePath = (path) => {
   return path.startsWith('/') ? path : `/${path}`;
 };
 
-export const API_PROXY_BASE = '/backend';
+export const API_PROXY_BASE = '/api/backend';
 
 export const resolveApiBase = (env = import.meta.env) => {
   const base = typeof env?.VITE_API_BASE === 'string' ? env.VITE_API_BASE.trim() : '';

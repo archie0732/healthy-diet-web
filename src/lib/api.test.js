@@ -17,18 +17,18 @@ test('resolveApiBase stays empty when API base is not configured', () => {
 test('buildApiUrl keeps ordinary endpoints on the local proxy path', () => {
   assert.equal(
     buildApiUrl('/api/user/profile', { VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev' }),
-    '/backend/api/user/profile',
+    '/api/backend/api/user/profile',
   );
 });
 
 test('buildApiUrl keeps chat and admin endpoints on the local proxy path', () => {
   assert.equal(
     buildApiUrl('/admin/rag/documents', { VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev/' }),
-    '/backend/admin/rag/documents',
+    '/api/backend/admin/rag/documents',
   );
   assert.equal(
     buildApiUrl('api/chat', { VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev/' }),
-    '/backend/api/chat',
+    '/api/backend/api/chat',
   );
-  assert.equal(API_PROXY_BASE, '/backend');
+  assert.equal(API_PROXY_BASE, '/api/backend');
 });

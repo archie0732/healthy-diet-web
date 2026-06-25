@@ -23,10 +23,10 @@ export default defineConfig(({ mode }) => {
     },
     server: proxyTarget ? {
       proxy: {
-        '/backend': {
+        '/api/backend': {
           target: proxyTarget,
           changeOrigin: true,
-          rewrite: (requestPath) => requestPath.replace(/^\/backend/, ''),
+          rewrite: (requestPath) => requestPath.replace(/^\/api\/backend/, ''),
         }
       }
     } : undefined,
