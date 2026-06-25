@@ -1,13 +1,25 @@
 {
   "functions": {
-    "api/[...].js": {
+    "api/proxy.js": {
       "maxDuration": 60
     }
   },
   "rewrites": [
     {
+      "source": "/api/auth/:path*",
+      "destination": "/api/proxy?path=auth/:path*"
+    },
+    {
+      "source": "/api/admin/:path*",
+      "destination": "/api/proxy?path=admin/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/proxy?path=api/:path*"
+    },
+    {
       "source": "/openapi.yml",
-      "destination": "/api/backend/openapi.yml"
+      "destination": "/api/proxy?path=openapi.yml"
     },
     {
       "source": "/:path*",

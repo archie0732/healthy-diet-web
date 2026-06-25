@@ -6,17 +6,29 @@ const vercelConfig = JSON.parse(readFileSync(new URL('./vercel.json', import.met
 
 test('vercel function config points at the native api splat handler', () => {
   assert.deepEqual(vercelConfig.functions, {
-    'api/[...].js': {
+    'api/proxy.js': {
       maxDuration: 60,
     },
   });
 });
 
-test('vercel rewrites only keep non-api routes when api paths are handled by native functions', () => {
+test('vercel rewrites route api traffic through the stable proxy function', () => {
   assert.deepEqual(vercelConfig.rewrites, [
     {
+      source: '/api/auth/:path*',
+      destination: '/api/proxy?path=auth/:path*',
+    },
+    {
+      source: '/api/admin/:path*',
+      destination: '/api/proxy?path=admin/:path*',
+    },
+    {
+      source: '/api/:path*',
+      destination: '/api/proxy?path=api/:path*',
+    },
+    {
       source: '/openapi.yml',
-      destination: '/api/backend/openapi.yml',
+      destination: '/api/proxy?path=openapi.yml',
     },
     {
       source: '/:path*',

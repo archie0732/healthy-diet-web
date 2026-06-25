@@ -25,6 +25,7 @@ test('buildProxyTargetUrl appends path and query onto upstream origin', () => {
 
 test('getRequestPathSegments normalizes Vercel catch-all query payloads', () => {
   assert.deepEqual(getRequestPathSegments({ path: ['auth', 'login'] }), ['auth', 'login']);
+  assert.deepEqual(getRequestPathSegments({ path: 'auth/login' }), ['auth', 'login']);
   assert.deepEqual(getRequestPathSegments({ path: 'openapi.yml' }), ['openapi.yml']);
   assert.deepEqual(getRequestPathSegments({}), []);
 });
