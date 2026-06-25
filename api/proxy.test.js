@@ -16,6 +16,17 @@ test('getProxyBaseUrl trims trailing slashes from configured upstream origin', (
   );
 });
 
+test('getProxyBaseUrl falls back to other configured upstream env vars when VITE_API_BASE is empty', () => {
+  assert.equal(
+    getProxyBaseUrl({
+      VITE_API_BASE: '   ',
+      API_BASE: '',
+      TARGET_API_SERVER: 'https://fallback.example.com///',
+    }),
+    'https://fallback.example.com',
+  );
+});
+
 test('buildProxyTargetUrl appends path and query onto upstream origin', () => {
   assert.equal(
     buildProxyTargetUrl('https://daily-fezzed-larisa.ngrok-free.dev', ['api', 'chat'], 'thread_id=1'),

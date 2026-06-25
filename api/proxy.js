@@ -11,11 +11,13 @@ const HOP_BY_HOP_HEADERS = new Set([
 ]);
 
 export const getProxyBaseUrl = (env = process.env) => {
-  const rawBase = typeof env?.VITE_API_BASE === 'string'
-    ? env.VITE_API_BASE.trim()
-    : typeof env?.API_BASE === 'string'
-      ? env.API_BASE.trim()
-      : '';
+  const candidates = [
+    env?.VITE_API_BASE,
+    env?.API_BASE,
+    env?.TARGET_API_SERVER,
+  ];
+
+  const rawBase = candidates.find((value) => typeof value === 'string' && value.trim())?.trim() || '';
 
   return rawBase.replace(/\/+$/, '');
 };
