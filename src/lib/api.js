@@ -3,13 +3,14 @@ const normalizePath = (path) => {
   return path.startsWith('/') ? path : `/${path}`;
 };
 
+export const API_PROXY_BASE = '/backend';
+
 export const resolveApiBase = (env = import.meta.env) => {
   const base = typeof env?.VITE_API_BASE === 'string' ? env.VITE_API_BASE.trim() : '';
   return base.replace(/\/+$/, '');
 };
 
-export const buildApiUrl = (path, env = import.meta.env) => {
+export const buildApiUrl = (path) => {
   const normalizedPath = normalizePath(path);
-  const apiBase = resolveApiBase(env);
-  return apiBase ? `${apiBase}${normalizedPath}` : normalizedPath;
+  return `${API_PROXY_BASE}${normalizedPath}`;
 };

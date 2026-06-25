@@ -1,5 +1,14 @@
 {
+  "functions": {
+    "api/backend/[...path].js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
+    {
+      "source": "/backend/(.*)",
+      "destination": "/api/backend/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
