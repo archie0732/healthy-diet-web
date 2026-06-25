@@ -12,27 +12,27 @@ test('vercel function config points at the native api splat handler', () => {
   });
 });
 
-test('vercel rewrites route api traffic through the stable proxy function', () => {
-  assert.deepEqual(vercelConfig.rewrites, [
+test('vercel routes send api traffic directly to the proxy function file', () => {
+  assert.deepEqual(vercelConfig.routes, [
     {
-      source: '/api/auth/:path*',
-      destination: '/api/proxy?path=auth/:path*',
+      src: '/api/auth/(.*)',
+      dest: '/api/proxy.js?path=auth/$1',
     },
     {
-      source: '/api/admin/:path*',
-      destination: '/api/proxy?path=admin/:path*',
+      src: '/api/admin/(.*)',
+      dest: '/api/proxy.js?path=admin/$1',
     },
     {
-      source: '/api/:path*',
-      destination: '/api/proxy?path=api/:path*',
+      src: '/api/(.*)',
+      dest: '/api/proxy.js?path=api/$1',
     },
     {
-      source: '/openapi.yml',
-      destination: '/api/proxy?path=openapi.yml',
+      src: '/openapi.yml',
+      dest: '/api/proxy.js?path=openapi.yml',
     },
     {
-      source: '/:path*',
-      destination: '/index.html',
+      src: '/(.*)',
+      dest: '/index.html',
     },
   ]);
 });
