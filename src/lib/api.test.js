@@ -21,7 +21,7 @@ test('buildApiUrl preserves ordinary endpoint paths for Vercel rewrites', () => 
   );
 });
 
-test('buildApiUrl preserves chat and admin endpoint paths', () => {
+test('buildApiUrl preserves chat, auth, and admin endpoint paths', () => {
   assert.equal(
     buildApiUrl('/admin/rag/documents', { VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev/' }),
     '/api/admin/rag/documents',
@@ -31,7 +31,7 @@ test('buildApiUrl preserves chat and admin endpoint paths', () => {
     '/api/chat',
   );
   assert.equal(
-    buildApiUrl('/auth/login', { VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev/' }),
-    '/auth/login',
+    buildApiUrl('/api/auth/login', { VITE_API_BASE: 'https://daily-fezzed-larisa.ngrok-free.dev/' }),
+    '/api/auth/login',
   );
 });

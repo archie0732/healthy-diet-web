@@ -23,9 +23,10 @@ export default defineConfig(({ mode }) => {
     },
     server: proxyTarget ? {
       proxy: {
-        '/auth': {
+        '/api/auth': {
           target: proxyTarget,
           changeOrigin: true,
+          rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
         },
         '/api/': {
           target: proxyTarget,

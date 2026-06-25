@@ -33,9 +33,9 @@ import { buildApiUrl } from '@/lib/api';
 
 const AUTH_LOGIN_NONCE_KEY = 'authLoginNonce';
 const AUTH_EXCLUDE_LOGOUT_ENDPOINTS = new Set([
-  '/auth/login',
-  '/auth/register',
-  '/auth/admin/login',
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/admin/login',
   '/api/auth/refresh',
 ]);
 

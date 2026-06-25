@@ -12,7 +12,7 @@ const LoginView = ({ apiFetch, setToken, showNotification }) => {
     setError('');
     setIsLoading(true);
     try {
-      const data = await apiFetch('/auth/login', {
+      const data = await apiFetch('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email: targetEmail, password: targetPassword }),
       });

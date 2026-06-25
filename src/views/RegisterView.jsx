@@ -14,7 +14,7 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
     setError('');
     setIsLoading(true);
     try {
-      const data = await apiFetch('/auth/register', {
+      const data = await apiFetch('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, password, nickname }),
       });
@@ -111,4 +111,3 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
 };
 
 export default RegisterView;
-

@@ -16,7 +16,7 @@ const AdminLoginView = ({ apiFetch, onLogin, isAdmin }) => {
     setIsLoading(true);
 
     try {
-      const data = await apiFetch('/auth/admin/login', {
+      const data = await apiFetch('/api/auth/admin/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
@@ -42,7 +42,7 @@ const AdminLoginView = ({ apiFetch, onLogin, isAdmin }) => {
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-slate-900">Admin Login</h1>
-            <p className="text-sm text-slate-500">使用管理員端點 `/auth/admin/login`</p>
+            <p className="text-sm text-slate-500">使用管理員端點 `/api/auth/admin/login`</p>
           </div>
         </div>
 
@@ -95,4 +95,3 @@ const AdminLoginView = ({ apiFetch, onLogin, isAdmin }) => {
 };
 
 export default AdminLoginView;
-
