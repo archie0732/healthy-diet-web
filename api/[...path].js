@@ -9,7 +9,7 @@ import {
   getProxyBaseUrl,
   getResponseHeaderEntries,
   shouldStreamResponse,
-} from '../proxy.js';
+} from './proxy.js';
 
 const readRequestBody = async (req) => {
   if (req.method === 'GET' || req.method === 'HEAD') return null;

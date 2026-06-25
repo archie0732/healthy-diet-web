@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildProxyTargetUrl,
+  getRequestPathSegments,
   getProxyBaseUrl,
   getResponseHeaderEntries,
   shouldStreamResponse,
@@ -20,6 +21,12 @@ test('buildProxyTargetUrl appends path and query onto upstream origin', () => {
     buildProxyTargetUrl('https://daily-fezzed-larisa.ngrok-free.dev', ['api', 'chat'], 'thread_id=1'),
     'https://daily-fezzed-larisa.ngrok-free.dev/api/chat?thread_id=1',
   );
+});
+
+test('getRequestPathSegments normalizes Vercel catch-all query payloads', () => {
+  assert.deepEqual(getRequestPathSegments({ path: ['auth', 'login'] }), ['auth', 'login']);
+  assert.deepEqual(getRequestPathSegments({ path: 'openapi.yml' }), ['openapi.yml']);
+  assert.deepEqual(getRequestPathSegments({}), []);
 });
 
 test('getResponseHeaderEntries strips hop-by-hop headers before proxying', () => {

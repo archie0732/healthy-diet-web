@@ -17,6 +17,12 @@ export const getProxyBaseUrl = (env = process.env) => {
   return rawBase.replace(/\/+$/, '');
 };
 
+export const getRequestPathSegments = (query = {}) => {
+  if (Array.isArray(query?.path)) return query.path;
+  if (typeof query?.path === 'string') return [query.path];
+  return [];
+};
+
 export const buildProxyTargetUrl = (baseUrl, pathSegments = [], search = '') => {
   const normalizedBase = typeof baseUrl === 'string' ? baseUrl.replace(/\/+$/, '') : '';
   const normalizedPath = Array.isArray(pathSegments) ? pathSegments.filter(Boolean).join('/') : '';

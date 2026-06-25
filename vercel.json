@@ -1,22 +1,10 @@
 {
   "functions": {
-    "api/backend/[...path].js": {
+    "api/[...path].js": {
       "maxDuration": 60
     }
   },
   "rewrites": [
-    {
-      "source": "/api/auth/:path*",
-      "destination": "/api/backend/auth/:path*"
-    },
-    {
-      "source": "/api/admin/:path*",
-      "destination": "/api/backend/admin/:path*"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "/api/backend/api/:path*"
-    },
     {
       "source": "/openapi.yml",
       "destination": "/api/backend/openapi.yml"
