@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Database, Filter, RefreshCw, Search, Sparkles } from 'lucide-react';
+import { useLanguage } from '@/i18n';
 
 const SOURCE_OPTIONS = [
   { value: 'nutrition_rules', label: 'nutrition_rules' },
@@ -23,6 +24,7 @@ const sourceTypeTone = (value) => {
 };
 
 const KnowledgeSearchView = ({ apiFetch }) => {
+  const { t, isEn } = useLanguage();
   const [mode, setMode] = useState('filtered');
   const [query, setQuery] = useState('');
   const [topK, setTopK] = useState(5);
@@ -82,7 +84,7 @@ const KnowledgeSearchView = ({ apiFetch }) => {
       if (latestRequestKeyRef.current !== requestKey) return;
 
       if (response?.ok === false && response?.error === 'invalid_payload') {
-        setFormError('查詢條件格式不正確，請檢查查詢字串與來源篩選。');
+        setFormError(t('knowledgeSearch.queryError', '查詢條件格式不正確，請檢查查詢字串與來源篩選。'));
         setResult(null);
         return;
       }
@@ -95,9 +97,9 @@ const KnowledgeSearchView = ({ apiFetch }) => {
     } catch (err) {
       if (latestRequestKeyRef.current !== requestKey) return;
       if (err?.message === 'invalid_payload') {
-        setFormError('查詢條件格式不正確，請檢查查詢字串與來源篩選。');
+        setFormError(t('knowledgeSearch.queryError', '查詢條件格式不正確，請檢查查詢字串與來源篩選。'));
       } else {
-        setError(err?.message || '知識搜尋失敗');
+        setError(err?.message || (isEn ? 'Knowledge search failed' : '知識搜尋失敗'));
       }
       setResult(null);
     } finally {
@@ -105,7 +107,7 @@ const KnowledgeSearchView = ({ apiFetch }) => {
         setLoading(false);
       }
     }
-  }, [apiFetch, forceRefresh, mode, sourceTypes, topK]);
+  }, [apiFetch, forceRefresh, isEn, mode, sourceTypes, t, topK]);
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
@@ -135,12 +137,12 @@ const KnowledgeSearchView = ({ apiFetch }) => {
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-black uppercase tracking-[0.24em] text-emerald-200">
               <Database size={14} />
-              RAG Search
+              {t('knowledgeSearch.badge', 'Vector Knowledge Search')}
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">知識搜尋</h1>
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">{t('knowledgeSearch.title', '知識搜尋')}</h1>
               <p className="mt-3 text-sm font-medium leading-6 text-slate-200 sm:text-base">
-                頁面會依模式切換到 `GET /rag/search` 或 `POST /rag/search`，並支援 debounce、來源篩選、空狀態與錯誤提示。
+                {t('knowledgeSearch.subtitle', '透過向量語意檢索，即時查找專業營養規則、衛福部健康新聞與上傳知識文件。')}
               </p>
             </div>
           </div>
@@ -156,7 +158,7 @@ const KnowledgeSearchView = ({ apiFetch }) => {
         <form onSubmit={handleSubmit} className="space-y-4 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm">
           <div>
             <p className="text-sm font-semibold text-slate-500">Search Console</p>
-            <h2 className="text-2xl font-black text-slate-900">查詢條件</h2>
+            <h2 className="text-2xl font-black text-slate-900">{isEn ? 'Query Criteria' : '查詢條件'}</h2>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -169,7 +171,7 @@ const KnowledgeSearchView = ({ apiFetch }) => {
                   : 'border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
-              簡易搜尋
+              {isEn ? 'Quick Search' : '簡易搜尋'}
             </button>
             <button
               type="button"
@@ -180,16 +182,16 @@ const KnowledgeSearchView = ({ apiFetch }) => {
                   : 'border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
-              篩選搜尋
+              {isEn ? 'Filtered Search' : '篩選搜尋'}
             </button>
           </div>
 
           <label className="block">
-            <span className="mb-2 block text-sm font-semibold text-slate-600">查詢字串</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-600">{isEn ? 'Query String' : '查詢字串'}</span>
             <textarea
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="輸入想查找的衛教、法規或上傳知識內容"
+              placeholder={t('knowledgeSearch.inputPlaceholder', '請輸入想查詢的關鍵字...')}
               rows={5}
               className="w-full rounded-3xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-emerald-400"
             />
@@ -242,7 +244,9 @@ const KnowledgeSearchView = ({ apiFetch }) => {
             </div>
           ) : (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-              簡易搜尋模式只會送出 query、top_k 與 force_refresh，不帶 `source_types`。
+              {isEn
+                ? 'Quick search mode only sends query, top_k, and force_refresh without source_types.'
+                : '簡易搜尋模式只會送出 query、top_k 與 force_refresh，不帶 source_types。'}
             </div>
           )}
 
@@ -264,7 +268,7 @@ const KnowledgeSearchView = ({ apiFetch }) => {
             className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? <RefreshCw size={16} className="animate-spin" /> : <Search size={16} />}
-            {loading ? '查詢中...' : '立即搜尋'}
+            {loading ? t('knowledgeSearch.searching', '查詢中...') : t('knowledgeSearch.searchButton', '立即搜尋')}
           </button>
         </form>
 
@@ -272,16 +276,23 @@ const KnowledgeSearchView = ({ apiFetch }) => {
           <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-500">Results</p>
-              <h2 className="text-2xl font-black text-slate-900">搜尋結果</h2>
+              <h2 className="text-2xl font-black text-slate-900">{isEn ? 'Search Results' : '搜尋結果'}</h2>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
               {result ? (
-                <>
-                  查詢 <span className="font-black text-slate-900">{result.query}</span>，共{' '}
-                  <span className="font-black text-slate-900">{result.total_hits}</span> 筆
-                </>
+                isEn ? (
+                  <>
+                    Query <span className="font-black text-slate-900">{result.query}</span>, total{' '}
+                    <span className="font-black text-slate-900">{result.total_hits}</span> hits
+                  </>
+                ) : (
+                  <>
+                    查詢 <span className="font-black text-slate-900">{result.query}</span>，共{' '}
+                    <span className="font-black text-slate-900">{result.total_hits}</span> 筆
+                  </>
+                )
               ) : (
-                '輸入查詢後會自動 debounce 搜尋'
+                isEn ? 'Type to auto-search with debounce' : '輸入查詢後會自動 debounce 搜尋'
               )}
             </div>
           </div>
@@ -301,8 +312,10 @@ const KnowledgeSearchView = ({ apiFetch }) => {
 
           {!loading && !error && !formError && query.trim() && result && result.hits.length === 0 ? (
             <div className="mt-5 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-              <p className="text-lg font-black text-slate-700">沒有找到相關內容</p>
-              <p className="mt-2 text-sm text-slate-500">可以調整查詢字詞、改用簡易模式，或放寬 `source_types` 篩選。</p>
+              <p className="text-lg font-black text-slate-700">{isEn ? 'No related content found' : '沒有找到相關內容'}</p>
+              <p className="mt-2 text-sm text-slate-500">
+                {t('knowledgeSearch.emptyResults', '可以調整查詢字詞、改用簡易模式，或放寬 source_types 篩選。')}
+              </p>
             </div>
           ) : null}
 
@@ -327,12 +340,16 @@ const KnowledgeSearchView = ({ apiFetch }) => {
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-black tracking-tight text-slate-900">{hit.title || '未命名內容'}</h3>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{hit.snippet || '沒有摘要內容'}</p>
+                  <h3 className="text-xl font-black tracking-tight text-slate-900">
+                    {hit.title || (isEn ? 'Untitled Item' : '未命名內容')}
+                  </h3>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                    {hit.snippet || (isEn ? 'No snippet available' : '沒有摘要內容')}
+                  </p>
 
                   <div className="mt-4 flex flex-col gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500">
                     <p>ID: {hit.id}</p>
-                    <p>來源路徑: {hit.source_path || '-'}</p>
+                    <p>{isEn ? 'Source Path:' : '來源路徑:'} {hit.source_path || '-'}</p>
                   </div>
                 </article>
               ))}
@@ -344,9 +361,11 @@ const KnowledgeSearchView = ({ apiFetch }) => {
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-100 text-emerald-700">
                 <Sparkles size={28} />
               </div>
-              <p className="mt-4 text-lg font-black text-slate-700">開始查詢知識庫</p>
+              <p className="mt-4 text-lg font-black text-slate-700">{isEn ? 'Start Exploring Knowledge' : '開始查詢知識庫'}</p>
               <p className="mt-2 text-sm text-slate-500">
-                輸入問題後，系統會自動以 450ms debounce 呼叫對應的 RAG search route。
+                {isEn
+                  ? 'Type your question to automatically perform vector search against the RAG knowledge base.'
+                  : '輸入問題後，系統會自動以 450ms debounce 呼叫對應的 RAG search route。'}
               </p>
             </div>
           ) : null}

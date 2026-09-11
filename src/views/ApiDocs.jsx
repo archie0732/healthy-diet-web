@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { useLanguage } from '../i18n';
 import {
   CheckCircle2,
   Code,
@@ -45,6 +46,7 @@ const categoryIcons = {
 const getMethodColor = (method) => methodTone[method] || 'bg-slate-100 text-slate-700 border-slate-200';
 
 const ApiDocs = () => {
+  const { isEn } = useLanguage();
   const { data: openApi, loading, error } = useRustOpenApi();
   const endpoints = useMemo(() => openApi?.endpoints || [], [openApi]);
   const groups = useMemo(() => openApi?.groups || [], [openApi]);
@@ -75,7 +77,7 @@ const ApiDocs = () => {
     return (
       <div className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
         <div className="rounded-[28px] border border-slate-200 bg-white p-8 text-sm font-semibold text-slate-600 shadow-sm">
-          正在從 Rust `/openapi.yml` 載入 API 文件...
+          {isEn ? "Loading API documentation from Rust `/openapi.yml`..." : "正在從 Rust `/openapi.yml` 載入 API 文件..."}
         </div>
       </div>
     );
@@ -85,7 +87,7 @@ const ApiDocs = () => {
     return (
       <div className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
         <div className="rounded-[28px] border border-rose-200 bg-rose-50 p-8 text-sm font-semibold text-rose-700 shadow-sm">
-          無法載入 Rust `/openapi.yml`：{error}
+          {isEn ? `Failed to load Rust `/openapi.yml`: ${error}` : `無法載入 Rust `/openapi.yml`：${error}`}
         </div>
       </div>
     );
@@ -185,7 +187,7 @@ const ApiDocs = () => {
               {meta.notes.map((note) => (
                 <p key={note}>{note}</p>
               ))}
-              {error ? <p>最近一次重新載入失敗：{error}</p> : null}
+              {error ? <p>{isEn ? `Last reload failed: ${error}` : `最近一次重新載入失敗：${error}`}</p> : null}
             </div>
           </div>
         </div>
@@ -312,9 +314,9 @@ const ApiDocs = () => {
               RAG Capability Note
             </h2>
             <p className="text-sm leading-6 text-slate-600">
-              這個頁面會直接依照 Rust `/openapi.yml` 的能力旗標顯示內容。現在 `reindex` 能力為
-              {' '}
-              `{String(ragCapabilities.reindex)}`。
+              {isEn
+                ? `This page reflects capabilities directly from Rust /openapi.yml. Current reindex capability is '${String(ragCapabilities.reindex)}'.`
+                : `這個頁面會直接依照 Rust /openapi.yml 的能力旗標顯示內容。現在 reindex 能力為 '${String(ragCapabilities.reindex)}'。`}
             </p>
           </div>
         </div>

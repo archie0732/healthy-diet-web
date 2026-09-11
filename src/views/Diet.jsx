@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../i18n';
 import {
   Camera, UploadCloud, X, Activity, Sparkles,
   CheckCircle2, Database, Image as ImageIcon, MessageSquare,
@@ -51,6 +52,7 @@ const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality = 0.8) =
 };
 
 const Diet = ({ apiFetch, showNotification }) => {
+  const { t, isEn } = useLanguage();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [result, setResult] = useState(null);
@@ -103,10 +105,10 @@ const Diet = ({ apiFetch, showNotification }) => {
       formData.append('image', file);
       const data = await apiFetch('/api/diet', { method: 'POST', body: formData });
       setResult(data);
-      showNotification('測試圖片分析完成！');
+      showNotification(isEn ? 'Test meal analyzed successfully!' : '測試圖片分析完成！');
       fetchHistory();
     } catch (err) {
-      showNotification('測試圖片分析失敗', 'error');
+      showNotification(isEn ? 'Test meal analysis failed' : '測試圖片分析失敗', 'error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -131,10 +133,10 @@ const Diet = ({ apiFetch, showNotification }) => {
       formData.append('image', compressedBlob, 'upload.jpg');
       const data = await apiFetch('/api/diet', { method: 'POST', body: formData });
       setResult(data);
-      showNotification('分析完成！');
+      showNotification(isEn ? 'Analysis complete!' : '分析完成！');
       fetchHistory();
     } catch (err) {
-      showNotification(err.message || '圖片分析失敗，請重試', 'error');
+      showNotification(err.message || (isEn ? 'Image analysis failed, please try again' : '圖片分析失敗，請重試'), 'error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -179,7 +181,7 @@ const Diet = ({ apiFetch, showNotification }) => {
     if (!complementText.trim()) return;
 
     // 這裡以後可以接 API 更新該筆紀錄
-    showNotification(`已收到補充：${complementText}。功能開發中！`);
+    showNotification(isEn ? `Received note: ${complementText}. Feature in development!` : `已收到補充：${complementText}。功能開發中！`);
     setComplementText('');
   };
 
@@ -214,7 +216,7 @@ const Diet = ({ apiFetch, showNotification }) => {
           onClick={() => handleTabSwitch('image')}
           className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-4 font-black transition-colors ${activeTab === 'image' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300'}`}
         >
-          <ImageIcon size={18} /> 照片紀錄
+          <ImageIcon size={18} /> {isEn ? "Food Photo" : "照片紀錄"}
         </button>
       </div>
 
@@ -224,14 +226,14 @@ const Diet = ({ apiFetch, showNotification }) => {
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-[32px] rounded-tr-none shadow-sm border-4 border-indigo-100">
               <h4 className="font-black text-slate-700 mb-6 flex items-center gap-2 text-lg">
-                <TrendingUp size={20} className="text-indigo-500" /> 營養組成雷達圖
+                <TrendingUp size={20} className="text-indigo-500" /> {isEn ? "Nutrition Breakdown Radar" : "營養組成雷達圖"}
               </h4>
               <div className="h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={getRadarData(selectedChatRecord)}>
                     <PolarGrid stroke="#e2e8f0" strokeWidth={2} />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fontWeight: 800, fill: '#475569' }} />
-                    <RechartsRadar name="餐點比例" dataKey="A" stroke="#6366f1" strokeWidth={4} fill="#6366f1" fillOpacity={0.4} />
+                    <RechartsRadar name={isEn ? "Portion Ratio" : "餐點比例"} dataKey="A" stroke="#6366f1" strokeWidth={4} fill="#6366f1" fillOpacity={0.4} />
                   </RadarChart>
                 </ResponsiveContainer>
               </div>
@@ -239,7 +241,7 @@ const Diet = ({ apiFetch, showNotification }) => {
             <div className="flex items-start gap-4">
               <div className="bg-emerald-500 p-3 rounded-2xl text-white shadow-lg border-2 border-emerald-400 shrink-0"><Sparkles size={20} /></div>
               <div className="bg-emerald-600 text-white p-5 rounded-[32px] rounded-tl-none shadow-md border-4 border-emerald-500 w-full">
-                <p className="text-xs font-black opacity-80 mb-3 border-b border-emerald-400 pb-2">AI 智慧營養師點評</p>
+                <p className="text-xs font-black opacity-80 mb-3 border-b border-emerald-400 pb-2">{isEn ? "AI Dietitian Advice" : "AI 智慧營養師點評"}</p>
                 <p className="text-base font-bold leading-relaxed italic">"{selectedChatRecord.ai_evaluation}"</p>
               </div>
             </div>
@@ -264,7 +266,7 @@ const Diet = ({ apiFetch, showNotification }) => {
               type="text"
               value={complementText}
               onChange={(e) => setComplementText(e.target.value)}
-              placeholder="補充食物細節 (例：還有半碗白飯...)"
+              placeholder={isEn ? "Add food notes (e.g. half bowl of rice...)" : "補充食物細節 (例：還有半碗白飯...)"}
               className="flex-1 bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-emerald-500 transition-all"
             />
             <button
@@ -287,7 +289,7 @@ const Diet = ({ apiFetch, showNotification }) => {
       {isAnalyzing && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white p-8 rounded-[32px] shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 border-4 border-emerald-100 animate-in zoom-in-95">
-            <h3 className="text-xl font-black text-slate-800 mb-6 tracking-wide">辨識中請稍後</h3>
+            <h3 className="text-xl font-black text-slate-800 mb-6 tracking-wide">{isEn ? 'Analyzing meal, please wait...' : '辨識中請稍後'}</h3>
             <div className="relative w-48 h-48 rounded-2xl overflow-hidden border-4 border-slate-100 shadow-inner bg-slate-50">
               <video
                 src="/a.mp4"
@@ -307,8 +309,8 @@ const Diet = ({ apiFetch, showNotification }) => {
         <div className="flex items-center mb-8 border-b-2 border-slate-50 pb-6">
           <div className="bg-blue-100 p-3 rounded-xl text-blue-600 mr-4 border-2 border-blue-200"><Camera size={24} /></div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-slate-800">飲食 YOLO 視覺辨識</h2>
-            <p className="text-slate-500 text-sm font-bold">即時標註食物組件並產出營養分析</p>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-800">{isEn ? "YOLO Dietary Vision Recognition" : "飲食 YOLO 視覺辨識"}</h2>
+            <p className="text-slate-500 text-sm font-bold">{isEn ? "Real-time food component detection & nutritional breakdown" : "即時標註食物組件並產出營養分析"}</p>
           </div>
         </div>
 
@@ -318,7 +320,7 @@ const Diet = ({ apiFetch, showNotification }) => {
               {showTestPreview && !result && (
                 <div className="mb-6 bg-amber-50 border-4 border-amber-200 p-4 rounded-2xl flex items-center justify-center gap-3 text-amber-700 animate-in slide-in-from-top-4">
                   <Info size={24} className="animate-pulse" />
-                  <span className="font-black text-lg">即將使用測試照片</span>
+                  <span className="font-black text-lg">{isEn ? "About to analyze sample test photo" : "即將使用測試照片"}</span>
                 </div>
               )}
               <img
@@ -328,7 +330,7 @@ const Diet = ({ apiFetch, showNotification }) => {
               />
               {result?.image_base64 && (
                 <div className="absolute top-6 left-6 bg-emerald-500 text-white px-4 py-2 rounded-xl font-black text-xs shadow-lg flex items-center gap-2 animate-in fade-in zoom-in duration-500 border-2 border-emerald-400">
-                  <ScanLine size={16} className="animate-pulse" /> AI 標註完成
+                  <ScanLine size={16} className="animate-pulse" /> {isEn ? "AI Annotated" : "AI 標註完成"}
                 </div>
               )}
               <button onClick={clearSelection} className="absolute top-6 right-6 bg-white p-2 rounded-full shadow-md text-red-500 border-4 border-red-50 hover:bg-red-50 hover:scale-110 transition-all">
@@ -340,11 +342,11 @@ const Diet = ({ apiFetch, showNotification }) => {
               <div className="bg-blue-50 p-6 rounded-full mb-6 inline-block border-4 border-blue-100"><UploadCloud size={48} className="text-blue-500" /></div>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button onClick={() => document.getElementById('fileUpload').click()} className="bg-white border-4 border-slate-200 py-3 px-6 rounded-xl font-black flex items-center justify-center hover:bg-slate-50 transition shadow-sm text-slate-700">
-                  <ImageIcon size={20} className="mr-2 text-slate-500" /> 相簿選擇
+                  <ImageIcon size={20} className="mr-2 text-slate-500" /> {isEn ? "Choose Photo" : "相簿選擇"}
                 </button>
                 <input type="file" id="fileUpload" className="hidden" accept="image/*" onChange={handleFileChange} />
                 <button onClick={prepareTestImage} disabled={isAnalyzing} className="bg-emerald-600 border-4 border-emerald-700 text-white py-3 px-6 rounded-xl font-black flex items-center justify-center hover:bg-emerald-700 transition shadow-sm">
-                  <Zap size={20} className="mr-2" /> 測試圖片
+                  <Zap size={20} className="mr-2" /> {isEn ? "Sample Meal" : "測試圖片"}
                 </button>
               </div>
             </div>
@@ -360,8 +362,8 @@ const Diet = ({ apiFetch, showNotification }) => {
                       <p className="text-3xl font-black">{result.ai_score || '--'}</p>
                     </div>
                     <div>
-                      <h3 className="font-black text-emerald-800 text-lg flex items-center gap-2">辨識成功 <CheckCircle2 size={18} /></h3>
-                      <p className="text-sm font-bold text-emerald-600">總熱量: {result.total_calories?.toFixed(0)} kcal</p>
+                      <h3 className="font-black text-emerald-800 text-lg flex items-center gap-2">{isEn ? "Recognition Successful" : "辨識成功"} <CheckCircle2 size={18} /></h3>
+                      <p className="text-sm font-bold text-emerald-600">{isEn ? "Total Calories: " : "總熱量: "}{result.total_calories?.toFixed(0)} kcal</p>
                     </div>
                   </div>
                   <div className="relative">
@@ -372,11 +374,11 @@ const Diet = ({ apiFetch, showNotification }) => {
                       }}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 font-black text-xs transition-all ${reportingId === 'current' ? 'bg-rose-500 border-rose-600 text-white shadow-lg' : 'bg-white border-emerald-200 text-emerald-500 hover:text-rose-500 hover:border-rose-300'}`}
                     >
-                      <Flag size={14} fill={reportingId === 'current' ? "currentColor" : "none"} /> 回報
+                      <Flag size={14} fill={reportingId === 'current' ? "currentColor" : "none"} /> {isEn ? "Report" : "回報"}
                     </button>
                     {reportingId === 'current' && (
                       <div className="absolute right-0 top-full mt-2 w-44 bg-white border-4 border-slate-900 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95">
-                        <div className="p-2 bg-slate-900 text-white text-[10px] font-black text-center uppercase">錯誤類型</div>
+                        <div className="p-2 bg-slate-900 text-white text-[10px] font-black text-center uppercase">{isEn ? "Issue Type" : "錯誤類型"}</div>
                         {['圖片無法載入', '圖片顯示錯誤', 'AI判讀有誤', '熱量辨別有誤'].map((opt) => (
                           <button key={opt} onClick={() => { setReportingId(null); alert('感謝回報！'); }} className="w-full px-4 py-2.5 text-xs font-black text-slate-600 hover:bg-rose-50 hover:text-rose-600 text-left border-b last:border-none border-slate-100">{opt}</button>
                         ))}
@@ -385,7 +387,7 @@ const Diet = ({ apiFetch, showNotification }) => {
                   </div>
                 </div>
                 <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border-2 border-emerald-100 relative z-10">
-                  <div className="flex items-center gap-2 mb-2 text-emerald-700 font-black text-sm"><Sparkles size={16} /> AI 營養師建議</div>
+                  <div className="flex items-center gap-2 mb-2 text-emerald-700 font-black text-sm"><Sparkles size={16} /> {isEn ? "AI Nutritionist Advice" : "AI 營養師建議"}</div>
                   <p className="text-emerald-900 font-bold leading-relaxed italic text-sm">"{result.ai_comment}"</p>
                 </div>
               </div>
@@ -400,7 +402,7 @@ const Diet = ({ apiFetch, showNotification }) => {
             className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg border-b-4 border-blue-800 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center"
           >
             {isAnalyzing ? <Activity className="animate-spin mr-3" /> : <Sparkles className="mr-3" />}
-            {isAnalyzing ? '推論中...' : '開始辨識'}
+            {isAnalyzing ? (isEn ? 'Inferring...' : '推論中...') : (isEn ? 'Start Recognition' : '開始辨識')}
           </button>
         )}
       </div>
@@ -410,7 +412,7 @@ const Diet = ({ apiFetch, showNotification }) => {
         <div className="p-5 border-b-4 border-slate-100 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MessageSquare className="text-indigo-600" />
-            <h3 className="font-black text-slate-800">歷史辨識分析對話</h3>
+            <h3 className="font-black text-slate-800">{isEn ? "Meal Recognition History" : "歷史辨識分析對話"}</h3>
           </div>
         </div>
         <div className="flex-1 flex overflow-hidden">
@@ -425,7 +427,7 @@ const Diet = ({ apiFetch, showNotification }) => {
                   <span className="text-[10px] font-black text-slate-400">{rec.created_at?.split('.')[0]}</span>
                   <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200">Score: {rec.ai_score}</span>
                 </div>
-                <p className="text-sm font-black text-slate-700 truncate">熱量: {rec.total_calories?.toFixed(0)} kcal</p>
+                <p className="text-sm font-black text-slate-700 truncate">{isEn ? "Calories: " : "熱量: "}{rec.total_calories?.toFixed(0)} kcal</p>
               </div>
             ))}
           </div>
@@ -433,7 +435,7 @@ const Diet = ({ apiFetch, showNotification }) => {
             {selectedChatRecord ? renderRecordDetails() : (
               <div className="h-full flex flex-col items-center justify-center text-slate-300">
                 <Info size={48} className="mb-4 opacity-20" />
-                <p className="font-black">點擊左側紀錄查看詳情</p>
+                <p className="font-black">{isEn ? "Select a record on the left to view details" : "點擊左側紀錄查看詳情"}</p>
               </div>
             )}
           </div>

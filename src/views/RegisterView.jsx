@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { UserRound } from 'lucide-react';
+import { useLanguage } from '@/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const RegisterView = ({ apiFetch, setToken, showNotification }) => {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
@@ -19,10 +22,12 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
         body: JSON.stringify({ email, password, nickname }),
       });
       setToken(data);
-      showNotification('註冊成功');
+      showNotification(t('auth.registerSuccess', '註冊成功'));
     } catch (err) {
       const friendly =
-        err?.status === 409 ? '此 Email 已被註冊。' : err?.message || '註冊失敗，請稍後再試。';
+        err?.status === 409
+          ? t('auth.emailConflict', '此 Email 已被註冊。')
+          : err?.message || t('auth.registerFailed', '註冊失敗，請稍後再試。');
       setError(friendly);
       showNotification(friendly, 'error');
     } finally {
@@ -33,6 +38,10 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
+        <div className="mb-4 flex justify-end">
+          <LanguageSwitcher />
+        </div>
+
         <div className="mb-6 flex justify-center">
           <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm">
             <img
@@ -48,8 +57,8 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
           </div>
         </div>
 
-        <h1 className="mb-1 text-2xl font-extrabold text-slate-900">建立帳號</h1>
-        <p className="mb-5 text-sm text-slate-500">註冊成功後會直接登入</p>
+        <h1 className="mb-1 text-2xl font-extrabold text-slate-900">{t('auth.registerTitle', '建立帳號')}</h1>
+        <p className="mb-5 text-sm text-slate-500">{t('auth.registerSubtitle', '註冊成功後會直接登入')}</p>
 
         {error ? (
           <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
@@ -59,7 +68,7 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
 
         <form onSubmit={handleRegister} className="space-y-4">
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Email</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">{t('auth.email', 'Email')}</span>
             <input
               className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-slate-400"
               type="email"
@@ -70,7 +79,7 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Password</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">{t('auth.password', 'Password')}</span>
             <input
               className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-slate-400"
               type="password"
@@ -81,7 +90,7 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Nickname</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">{t('auth.nickname', 'Nickname')}</span>
             <input
               className="w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-slate-400"
               type="text"
@@ -95,14 +104,14 @@ const RegisterView = ({ apiFetch, setToken, showNotification }) => {
             disabled={isLoading}
             className="w-full rounded-xl bg-slate-900 py-3 font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
           >
-            {isLoading ? '建立中...' : '註冊'}
+            {isLoading ? t('auth.registering', '建立中...') : t('auth.registerButton', '註冊')}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-600">
-          已經有帳號？
+          {t('auth.hasAccount', '已經有帳號？')}
           <Link className="ml-1 font-semibold text-slate-900 underline" to="/login">
-            回登入
+            {t('auth.backToLogin', '回登入')}
           </Link>
         </p>
       </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CalendarDays, Newspaper, RefreshCw, Shield, Sparkles } from 'lucide-react';
 import { isAdminRole } from '@/lib/authSession';
+import { useLanguage } from '@/i18n';
 
 const PAGE_SIZE = 10;
 
@@ -11,12 +12,8 @@ const clampPage = (value) => {
   return parsed;
 };
 
-const formatDate = (value) => {
-  if (!value) return '日期未提供';
-  return value;
-};
-
 const NewsListView = ({ apiFetch, role }) => {
+  const { t, isEn } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = clampPage(searchParams.get('page'));
 
@@ -32,6 +29,11 @@ const NewsListView = ({ apiFetch, role }) => {
   const [reloadNonce, setReloadNonce] = useState(0);
 
   const showAdminTools = useMemo(() => isAdminRole(role), [role]);
+
+  const formatDate = (value) => {
+    if (!value) return t('news.dateNotProvided', '日期未提供');
+    return value;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -53,7 +55,7 @@ const NewsListView = ({ apiFetch, role }) => {
         });
       } catch (err) {
         if (cancelled) return;
-        setError(err?.message || '無法載入新聞列表');
+        setError(err?.message || t('news.loadFailed', '無法載入新聞列表'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -63,7 +65,7 @@ const NewsListView = ({ apiFetch, role }) => {
     return () => {
       cancelled = true;
     };
-  }, [apiFetch, page, reloadNonce]);
+  }, [apiFetch, page, reloadNonce, t]);
 
   const changePage = (nextPage) => {
     setSearchParams((current) => {
@@ -82,12 +84,12 @@ const NewsListView = ({ apiFetch, role }) => {
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-black uppercase tracking-[0.24em] text-emerald-200">
               <Newspaper size={14} />
-              FDA News Feed
+              {t('news.badge', 'FDA News Feed')}
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">衛教新聞</h1>
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">{t('news.title', '衛教新聞')}</h1>
               <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-200 sm:text-base">
-                這裡直接串接 Rust 後端的 `/news` 系列路由，提供最新同步的新聞列表與文章詳情。
+                {t('news.subtitle', '這裡直接串接後端新聞路由，提供最新同步的新聞列表與文章詳情。')}
               </p>
             </div>
           </div>
@@ -99,14 +101,14 @@ const NewsListView = ({ apiFetch, role }) => {
               className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"
             >
               <RefreshCw size={16} />
-              重新整理
+              {t('common.refresh', '重新整理')}
             </button>
             <Link
               to="/knowledge-search"
               className="inline-flex items-center gap-2 rounded-2xl bg-emerald-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300"
             >
               <Sparkles size={16} />
-              前往知識搜尋
+              {t('news.toKnowledgeSearch', '前往知識搜尋')}
             </Link>
             {showAdminTools ? (
               <Link
@@ -114,7 +116,7 @@ const NewsListView = ({ apiFetch, role }) => {
                 className="inline-flex items-center gap-2 rounded-2xl border border-amber-300/40 bg-amber-300/15 px-4 py-3 text-sm font-bold text-amber-100 transition hover:bg-amber-300/20"
               >
                 <Shield size={16} />
-                管理工具
+                {isEn ? 'News Tools' : '管理工具'}
               </Link>
             ) : null}
           </div>
@@ -125,12 +127,22 @@ const NewsListView = ({ apiFetch, role }) => {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-500">News List</p>
-            <h2 className="text-2xl font-black text-slate-900">最新文章</h2>
+            <h2 className="text-2xl font-black text-slate-900">{isEn ? 'Latest Articles' : '最新文章'}</h2>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            第 <span className="font-black text-slate-900">{data.page}</span> 頁，共{' '}
-            <span className="font-black text-slate-900">{data.totalPages}</span> 頁，總計{' '}
-            <span className="font-black text-slate-900">{data.total}</span> 篇
+            {isEn ? (
+              <>
+                Page <span className="font-black text-slate-900">{data.page}</span> of{' '}
+                <span className="font-black text-slate-900">{data.totalPages}</span>, total{' '}
+                <span className="font-black text-slate-900">{data.total}</span>
+              </>
+            ) : (
+              <>
+                第 <span className="font-black text-slate-900">{data.page}</span> 頁，共{' '}
+                <span className="font-black text-slate-900">{data.totalPages}</span> 頁，總計{' '}
+                <span className="font-black text-slate-900">{data.total}</span> 篇
+              </>
+            )}
           </div>
         </div>
 
@@ -154,8 +166,12 @@ const NewsListView = ({ apiFetch, role }) => {
 
         {!loading && !error && data.items.length === 0 ? (
           <div className="mt-5 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
-            <p className="text-lg font-black text-slate-700">目前沒有新聞資料</p>
-            <p className="mt-2 text-sm text-slate-500">如果你是管理者，可以先到 News 工具頁手動觸發同步。</p>
+            <p className="text-lg font-black text-slate-700">{isEn ? 'No news articles available' : '目前沒有新聞資料'}</p>
+            <p className="mt-2 text-sm text-slate-500">
+              {isEn
+                ? 'If you are an administrator, you can trigger sync from the News Tools page.'
+                : '如果你是管理者，可以先到 News 工具頁手動觸發同步。'}
+            </p>
           </div>
         ) : null}
 
@@ -173,11 +189,15 @@ const NewsListView = ({ apiFetch, role }) => {
                       <CalendarDays size={13} />
                       {formatDate(item.publishedDate)}
                     </div>
-                    <h3 className="text-xl font-black tracking-tight text-slate-900">{item.title || '未命名文章'}</h3>
-                    <p className="text-sm font-medium text-slate-500">文章 ID: {item.id}</p>
+                    <h3 className="text-xl font-black tracking-tight text-slate-900">
+                      {item.title || (isEn ? 'Untitled Article' : '未命名文章')}
+                    </h3>
+                    <p className="text-sm font-medium text-slate-500">
+                      {isEn ? 'Article ID:' : '文章 ID:'} {item.id}
+                    </p>
                   </div>
                   <div className="inline-flex items-center gap-2 self-start rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition group-hover:bg-emerald-600">
-                    閱讀全文
+                    {t('news.readMore', '閱讀全文')}
                     <ArrowRight size={16} />
                   </div>
                 </div>
@@ -189,7 +209,9 @@ const NewsListView = ({ apiFetch, role }) => {
         {!loading && !error && data.totalPages > 1 ? (
           <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-500">
-              每頁 {data.pageSize} 筆，現在顯示第 {data.page} / {data.totalPages} 頁
+              {isEn
+                ? `${data.pageSize} items per page, showing page ${data.page} / ${data.totalPages}`
+                : `每頁 ${data.pageSize} 筆，現在顯示第 ${data.page} / ${data.totalPages} 頁`}
             </p>
             <div className="flex gap-3">
               <button
@@ -198,7 +220,7 @@ const NewsListView = ({ apiFetch, role }) => {
                 disabled={page <= 1}
                 className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                上一頁
+                {t('news.prevPage', '上一頁')}
               </button>
               <button
                 type="button"
@@ -206,7 +228,7 @@ const NewsListView = ({ apiFetch, role }) => {
                 disabled={page >= data.totalPages}
                 className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
               >
-                下一頁
+                {t('news.nextPage', '下一頁')}
               </button>
             </div>
           </div>

@@ -1,17 +1,19 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Home, MessageSquare, Camera, Users, User, Shield, Wrench, X } from 'lucide-react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { isAdminRole } from '@/lib/authSession';
 import { buildApiUrl } from '@/lib/api';
+import { useLanguage } from '@/i18n';
+import LanguageSwitcher from './LanguageSwitcher';
 
-const NAV_ITEMS = [
-  { to: '/', icon: Home, label: '首頁' },
-  { to: '/consult', icon: MessageSquare, label: 'AI' },
-  { to: '/diet', icon: Camera, label: '分析' },
-  { to: '/member', icon: Users, label: '團隊' },
-  { to: '/profile', icon: User, label: '我的' },
+const NAV_ITEM_CONFIG = [
+  { to: '/', icon: Home, key: 'nav.home', defaultLabel: '首頁' },
+  { to: '/consult', icon: MessageSquare, key: 'nav.ai', defaultLabel: 'AI' },
+  { to: '/diet', icon: Camera, key: 'nav.analysis', defaultLabel: '分析' },
+  { to: '/member', icon: Users, key: 'nav.team', defaultLabel: '團隊' },
+  { to: '/profile', icon: User, key: 'nav.mine', defaultLabel: '我的' },
 ];
 
 const normalizeAnnouncement = (payload) => {
@@ -29,6 +31,7 @@ const normalizeAnnouncement = (payload) => {
 
 export default function Layout({ user, token, handleLogout, notification, maintenanceNotice, clearMaintenanceNotice }) {
   const location = useLocation();
+  const { t } = useLanguage();
   const [announcement, setAnnouncement] = useState(null);
 
   const role = user?.role || localStorage.getItem('userRole') || '';
@@ -57,6 +60,17 @@ export default function Layout({ user, token, handleLogout, notification, mainte
 
         <main className="h-screen min-w-0 flex-1 overflow-y-auto">
           <div className="relative p-4 md:p-8">
+            {/* Mobile Top Header */}
+            <div className="mb-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xs md:hidden">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                  <img src="/icon.webp" alt="Healthy Diet" className="h-full w-full object-cover" />
+                </div>
+                <span className="text-sm font-extrabold text-slate-900">Healthy Diet</span>
+              </div>
+              <LanguageSwitcher />
+            </div>
+
             {notification ? (
               <div
                 className={`fixed left-1/2 top-8 z-50 -translate-x-1/2 rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-xl ${
@@ -79,7 +93,7 @@ export default function Layout({ user, token, handleLogout, notification, mainte
                 <div className="flex items-start gap-3">
                   <Wrench size={18} className="mt-0.5 shrink-0" />
                   <div>
-                    <p className="font-bold">功能維修中</p>
+                    <p className="font-bold">{t('common.maintenance', '功能維修中')}</p>
                     <p className="text-sm">{maintenanceNotice.message}</p>
                   </div>
                 </div>
@@ -100,7 +114,7 @@ export default function Layout({ user, token, handleLogout, notification, mainte
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                 >
                   <Shield size={15} />
-                  進入 Admin Console
+                  {t('common.adminConsole', '進入 Admin Console')}
                 </Link>
               </div>
             ) : null}
@@ -110,7 +124,7 @@ export default function Layout({ user, token, handleLogout, notification, mainte
         </main>
 
         <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-slate-200 bg-white md:hidden">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEM_CONFIG.map((item) => {
             const active = location.pathname === item.to;
             return (
               <Link
@@ -121,7 +135,7 @@ export default function Layout({ user, token, handleLogout, notification, mainte
                 }`}
               >
                 <item.icon size={19} />
-                <span>{item.label}</span>
+                <span>{t(item.key, item.defaultLabel)}</span>
               </Link>
             );
           })}
@@ -130,4 +144,3 @@ export default function Layout({ user, token, handleLogout, notification, mainte
     </SidebarProvider>
   );
 }
-

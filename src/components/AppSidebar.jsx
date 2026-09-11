@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -28,25 +28,27 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { isAdminRole } from '@/lib/authSession';
+import { useLanguage } from '@/i18n';
+import LanguageSwitcher from './LanguageSwitcher';
 
-const mainMenu = [
-  { title: '儀表板', url: '/', icon: Home },
-  { title: 'AI 諮詢', url: '/consult', icon: MessageSquare },
-  { title: '飲食分析', url: '/diet', icon: Camera },
-  { title: '衛教新聞', url: '/news', icon: Newspaper },
-  { title: '知識搜尋', url: '/knowledge-search', icon: Search },
-  { title: '知識圖譜', url: '/knowledge-graph', icon: Share2 },
-  { title: '團隊資訊', url: '/member', icon: Users },
-  { title: 'API 文件', url: '/api', icon: BookOpen },
+const MAIN_MENU_CONFIG = [
+  { key: 'nav.dashboard', defaultTitle: '儀表板', url: '/', icon: Home },
+  { key: 'nav.consult', defaultTitle: 'AI 諮詢', url: '/consult', icon: MessageSquare },
+  { key: 'nav.diet', defaultTitle: '飲食分析', url: '/diet', icon: Camera },
+  { key: 'nav.news', defaultTitle: '衛教新聞', url: '/news', icon: Newspaper },
+  { key: 'nav.knowledgeSearch', defaultTitle: '知識搜尋', url: '/knowledge-search', icon: Search },
+  { key: 'nav.knowledgeGraph', defaultTitle: '知識圖譜', url: '/knowledge-graph', icon: Share2 },
+  { key: 'nav.member', defaultTitle: '團隊資訊', url: '/member', icon: Users },
+  { key: 'nav.apiDocs', defaultTitle: 'API 文件', url: '/api', icon: BookOpen },
 ];
 
-const adminMenu = [
-  { title: 'Admin 首頁', url: '/admin', icon: Shield },
-  { title: 'User 管理', url: '/admin/users', icon: Users },
-  { title: 'Route 控制', url: '/admin/route-controls', icon: Route },
-  { title: '公告管理', url: '/admin/announcements', icon: Megaphone },
-  { title: 'RAG 文件', url: '/admin/rag-documents', icon: FileText },
-  { title: '新聞工具', url: '/admin/news-tools', icon: Newspaper },
+const ADMIN_MENU_CONFIG = [
+  { key: 'nav.adminHome', defaultTitle: 'Admin 首頁', url: '/admin', icon: Shield },
+  { key: 'nav.adminUsers', defaultTitle: 'User 管理', url: '/admin/users', icon: Users },
+  { key: 'nav.adminRouteControls', defaultTitle: 'Route 控制', url: '/admin/route-controls', icon: Route },
+  { key: 'nav.adminAnnouncements', defaultTitle: '公告管理', url: '/admin/announcements', icon: Megaphone },
+  { key: 'nav.adminRagDocuments', defaultTitle: 'RAG 文件', url: '/admin/rag-documents', icon: FileText },
+  { key: 'nav.adminNewsTools', defaultTitle: '新聞工具', url: '/admin/news-tools', icon: Newspaper },
 ];
 
 const MenuSection = ({ items, pathname }) => (
@@ -77,10 +79,21 @@ const MenuSection = ({ items, pathname }) => (
 
 export function AppSidebar({ user, handleLogout }) {
   const location = useLocation();
+  const { t } = useLanguage();
   const role = user?.role || localStorage.getItem('userRole') || '';
   const showAdmin = isAdminRole(role);
   const avatarUrl = user?.avatar_url || user?.avatarUrl || '';
   const avatarFallback = user?.nickname?.charAt(0)?.toUpperCase() || 'U';
+
+  const mainMenu = MAIN_MENU_CONFIG.map((item) => ({
+    ...item,
+    title: t(item.key, item.defaultTitle),
+  }));
+
+  const adminMenu = ADMIN_MENU_CONFIG.map((item) => ({
+    ...item,
+    title: t(item.key, item.defaultTitle),
+  }));
 
   return (
     <Sidebar variant="sidebar" className="border-r border-slate-200 bg-white">
@@ -91,7 +104,7 @@ export function AppSidebar({ user, handleLogout }) {
           </div>
           <div>
             <p className="font-extrabold text-slate-900">Healthy Diet</p>
-            <p className="text-xs text-slate-500">Workspace</p>
+            <p className="text-xs text-slate-500">{t('common.workspace', 'Workspace')}</p>
           </div>
         </div>
       </SidebarHeader>
@@ -115,6 +128,13 @@ export function AppSidebar({ user, handleLogout }) {
 
       <SidebarFooter className="px-3 pb-4">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+          <div className="mb-3 flex items-center justify-between border-b border-slate-200/60 pb-2.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              {t('common.language', 'Language')}
+            </span>
+            <LanguageSwitcher />
+          </div>
+
           <div className="mb-3 flex items-center gap-3">
             <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-200">
               {avatarUrl ? (
@@ -136,7 +156,7 @@ export function AppSidebar({ user, handleLogout }) {
               className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
             >
               <Settings size={14} />
-              個人
+              {t('nav.profile', '個人')}
             </Link>
             <button
               type="button"
@@ -144,7 +164,7 @@ export function AppSidebar({ user, handleLogout }) {
               className="inline-flex items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
             >
               <LogOut size={14} />
-              登出
+              {t('nav.logout', '登出')}
             </button>
           </div>
         </div>
@@ -152,4 +172,3 @@ export function AppSidebar({ user, handleLogout }) {
     </Sidebar>
   );
 }
-

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLanguage } from '../i18n';
 import { MessageSquare, Activity, Send, BrainCircuit, Flag, Plus, X, Menu, BotMessageSquare, ImagePlus } from 'lucide-react';
 
 // ?舀 Markdown?”?潸? LaTeX 憿舐內
@@ -39,6 +40,12 @@ const MODEL_SOURCE_OPTIONS = [
 ];
 
 const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
+  const { t, isEn } = useLanguage();
+  const modelSourceOptions = [
+    { value: 'auto', label: isEn ? 'Auto' : '自動' },
+    { value: 'google', label: 'Google' },
+    { value: 'local', label: isEn ? 'Local' : '本機' },
+  ];
   const QUESTION_MAX_LENGTH = 500;
   const [question, setQuestion] = useState('');
   const [modelSource, setModelSource] = useState(DEFAULT_MODEL_SOURCE);
@@ -66,7 +73,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
   const [pendingApproval, setPendingApproval] = useState(null);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
 
-  const activeRoomTitle = rooms.find((room) => room.id === activeRoomId)?.title || '新聊天室';
+  const activeRoomTitle = rooms.find((room) => room.id === activeRoomId)?.title || (isEn ? 'New Chat' : '新聊天室');
   const normalizeRooms = (data) => {
     const rawRooms = Array.isArray(data)
       ? data
@@ -81,7 +88,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     return rawRooms
       .map((room) => ({
         id: room?.id ?? room?.room_id ?? room?.roomId ?? room?.uuid,
-        title: room?.title ?? room?.room_title ?? room?.name ?? '新聊天室',
+        title: room?.title ?? room?.room_title ?? room?.name ?? (isEn ? 'New Chat' : '新聊天室'),
         summary: room?.summary ?? room?.last_summary ?? room?.description ?? null,
         isDraft: false,
       }))
@@ -262,7 +269,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
   const addDraftRoom = () => {
     const draftId = generateUUID();
     roomThreadIdMapRef.current[draftId] = draftId;
-    setRooms((prev) => [{ id: draftId, title: '新聊天室', summary: null, isDraft: true }, ...prev]);
+    setRooms((prev) => [{ id: draftId, title: isEn ? 'New Chat' : '新聊天室', summary: null, isDraft: true }, ...prev]);
     setActiveRoomId(draftId);
     latestThreadIdRef.current = draftId;
     return draftId;
@@ -363,7 +370,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      showNotification('圖片大小不可超過 5MB', 'error');
+      showNotification(isEn ? 'Image size cannot exceed 5MB' : '圖片大小不可超過 5MB', 'error');
       return;
     }
 
@@ -566,7 +573,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       ?? data?.content
       ?? data?.message
       ?? data?.prompt
-      ?? 'AI 建議更新你的個人資料，請先確認是否同意。';
+      ?? (isEn ? 'AI suggests updating your profile. Please confirm.' : 'AI 建議更新你的個人資料，請先確認是否同意。');
 
     return { approvalId, prompt, proposalItems };
   };
@@ -1047,7 +1054,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         <div className="border-b border-slate-200 p-4">
           <div className="mb-4">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Chats</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">飲食諮詢</h2>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">{isEn ? "Diet Consultation" : "飲食諮詢"}</h2>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1058,7 +1065,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             >
               <span className="inline-flex items-center gap-2">
                 <Plus size={16} />
-                新增聊天室
+                {isEn ? "New Chat" : "新增聊天室"}
               </span>
             </button>
             <button
@@ -1081,7 +1088,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               </div>
             ))
           ) : rooms.length === 0 ? (
-            <div className="py-8 text-center text-sm text-slate-400">目前還沒有聊天室</div>
+            <div className="py-8 text-center text-sm text-slate-400">{isEn ? "No chat rooms yet" : "目前還沒有聊天室"}</div>
           ) : (
             rooms.map((room) => (
               <button
@@ -1094,7 +1101,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                 }`}
               >
                 <MessageSquare size={16} className={activeRoomId === room.id ? 'text-white' : 'text-slate-400'} />
-                <span className="truncate font-medium">{room.title || '未命名聊天室'}</span>
+                <span className="truncate font-medium">{room.title || (isEn ? 'Untitled Chat' : '未命名聊天室')}</span>
               </button>
             ))
           )}
@@ -1122,12 +1129,12 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             </div>
             <div className="min-w-0">
               <h2 className="truncate text-base font-semibold text-slate-900 sm:text-lg">{activeRoomTitle}</h2>
-              <p className="text-xs text-slate-500">AI 飲食助理</p>
+              <p className="text-xs text-slate-500">{isEn ? "AI Diet Assistant" : "AI 飲食助理"}</p>
             </div>
           </div>
           <div className="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
             <span className={`inline-block h-2 w-2 rounded-full ${isThinking ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
-            <span>{isThinking ? '思考中' : '待命中'}</span>
+            <span>{isThinking ? (isEn ? 'Thinking...' : '思考中') : (isEn ? 'Standby' : '待命中')}</span>
           </div>
         </div>
 
@@ -1136,7 +1143,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             <div className="flex h-full items-center justify-center">
               <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-slate-600 shadow-sm">
                 <Activity size={18} className="animate-spin" />
-                <span className="text-sm font-medium">正在載入聊天室...</span>
+                <span className="text-sm font-medium">{isEn ? "Loading chat room..." : "正在載入聊天室..."}</span>
               </div>
             </div>
           ) : chatHistory.length === 0 ? (
@@ -1144,9 +1151,9 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-700">
                 <BrainCircuit size={28} />
               </div>
-              <h3 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">開始新的對話</h3>
+              <h3 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">{isEn ? "Start a New Conversation" : "開始新的對話"}</h3>
               <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
-                你可以詢問熱量、餐點規劃、減脂、蛋白質攝取，或直接上傳食物照片讓 AI 協助分析。
+                {isEn ? "Ask about calories, meal planning, fat loss, protein intake, or upload food photos for AI analysis." : "你可以詢問熱量、餐點規劃、減脂、蛋白質攝取，或直接上傳食物照片讓 AI 協助分析。"}
               </p>
 
               <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
@@ -1201,7 +1208,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                             <span className="rounded-full bg-white/80 px-2 py-0.5 font-semibold uppercase tracking-[0.18em] text-emerald-700">
                               {aiStatusType || 'status'}
                             </span>
-                            <span>{aiStatusContent || 'AI 思考中...'}</span>
+                            <span>{aiStatusContent || (isEn ? 'AI is thinking...' : 'AI 思考中...')}</span>
                           </div>
                         )}
                         {idx === chatHistory.length - 1 && toolCalls.length > 0 && (
@@ -1254,7 +1261,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                               className={`flex items-center gap-1 text-[11px] font-medium transition ${reportingIdx === idx ? 'text-rose-500' : 'text-slate-400 opacity-0 group-hover:opacity-100 hover:text-rose-500'}`}
                             >
                               <Flag size={12} />
-                              <span>回報</span>
+                              <span>{isEn ? "Report" : "回報"}</span>
                             </button>
 
                             {reportingIdx === idx && (
@@ -1296,21 +1303,21 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
           <div className="absolute inset-0 z-[70] flex items-center justify-center bg-slate-900/30 p-4">
             <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
               <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">需要確認</p>
-                <h3 className="text-xl font-semibold text-slate-900">確認個人資料更新</h3>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{isEn ? "Confirmation Required" : "需要確認"}</p>
+                <h3 className="text-xl font-semibold text-slate-900">{isEn ? "Confirm Profile Update" : "確認個人資料更新"}</h3>
                 <p className="text-sm text-slate-600">
-                  {pendingApproval.prompt || '請先確認建議更新的個人資料內容，再決定是否繼續。'}
+                  {pendingApproval.prompt || (isEn ? 'Please confirm the suggested profile updates before proceeding.' : '請先確認建議更新的個人資料內容，再決定是否繼續。')}
                 </p>
                 {approvalActionId ? (
                   <p className="text-xs text-slate-400">approval_id: {approvalActionId}</p>
                 ) : (
-                  <p className="text-xs text-rose-500">缺少 approval_id。</p>
+                  <p className="text-xs text-rose-500">{isEn ? "Missing approval_id." : "缺少 approval_id。"}</p>
                 )}
               </div>
 
               {pendingApproval.proposalItems?.length > 0 && (
                 <div className="mt-4 max-h-52 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">更新內容</p>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">{isEn ? "Update Details" : "更新內容"}</p>
                   <div className="space-y-2">
                     {pendingApproval.proposalItems.map((item) => (
                       <div key={`${item.field}-${item.value}`} className="grid grid-cols-[98px_76px_1fr] gap-2 text-sm">
@@ -1346,7 +1353,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                   disabled={isSubmittingApproval || !approvalActionId}
                   className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
                 >
-                  {isSubmittingApproval ? '送出中...' : '同意'}
+                  {isSubmittingApproval ? (isEn ? 'Submitting...' : '送出中...') : (isEn ? 'Approve' : '同意')}
                 </button>
               </div>
             </div>
@@ -1389,7 +1396,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             <div className="flex-1 space-y-2">
               <div className="flex items-center justify-between gap-3 px-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  {MODEL_SOURCE_OPTIONS.map((option) => {
+                  {modelSourceOptions.map((option) => {
                     const isActive = modelSource === option.value;
 
                     return (
@@ -1410,7 +1417,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                   })}
                 </div>
                 <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400">
-                  模型
+                  {isEn ? "Model" : "模型"}
                 </span>
               </div>
 
@@ -1419,7 +1426,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
                 value={question}
                 onChange={handleQuestionChange}
                 maxLength={QUESTION_MAX_LENGTH}
-                placeholder="輸入你想詢問的飲食、熱量、營養或減重計畫問題..."
+                placeholder={isEn ? "Ask about diet, calories, nutrition, or weight loss goals..." : "輸入你想詢問的飲食、熱量、營養或減重計畫問題..."}
                 disabled={isThinking || isRoomLoading || !activeRoomId}
                 rows={Math.min(4, Math.max(1, question.split('\n').length))}
                 onKeyDown={(e) => {

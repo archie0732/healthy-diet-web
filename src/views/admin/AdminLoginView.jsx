@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Shield, Lock, Mail } from 'lucide-react';
+import { useLanguage } from '../../i18n';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 
 const AdminLoginView = ({ apiFetch, onLogin, isAdmin }) => {
+  const { isEn } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -24,9 +27,9 @@ const AdminLoginView = ({ apiFetch, onLogin, isAdmin }) => {
     } catch (err) {
       const status = err?.status;
       if (status === 401 || status === 403) {
-        setError('管理員帳號或密碼錯誤，或權限不足。');
+        setError(isEn ? 'Invalid administrator credentials or insufficient permissions.' : '管理員帳號或密碼錯誤，或權限不足。');
       } else {
-        setError(err?.message || '管理員登入失敗，請稍後再試。');
+        setError(err?.message || (isEn ? 'Administrator login failed, please try again later.' : '管理員登入失敗，請稍後再試。'));
       }
     } finally {
       setIsLoading(false);
@@ -34,7 +37,11 @@ const AdminLoginView = ({ apiFetch, onLogin, isAdmin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 relative">
+      <div className="absolute top-6 right-6">
+        <LanguageSwitcher />
+      </div>
+
       <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-lg">
         <div className="mb-6 flex items-center gap-3">
           <div className="rounded-2xl bg-slate-900 p-3 text-white">
@@ -42,7 +49,7 @@ const AdminLoginView = ({ apiFetch, onLogin, isAdmin }) => {
           </div>
           <div>
             <h1 className="text-xl font-extrabold text-slate-900">Admin Login</h1>
-            <p className="text-sm text-slate-500">使用管理員端點 `/api/auth/admin/login`</p>
+            <p className="text-sm text-slate-500">{isEn ? 'Via admin endpoint `/api/auth/admin/login`' : '使用管理員端點 `/api/auth/admin/login`'}</p>
           </div>
         </div>
 
@@ -68,7 +75,7 @@ const AdminLoginView = ({ apiFetch, onLogin, isAdmin }) => {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-slate-700">Password</span>
+            <span className="mb-1 block text-sm font-semibold text-slate-700">{isEn ? 'Password' : '密碼 (Password)'}</span>
             <div className="flex items-center rounded-xl border border-slate-200 px-3">
               <Lock size={16} className="text-slate-400" />
               <input
@@ -86,7 +93,7 @@ const AdminLoginView = ({ apiFetch, onLogin, isAdmin }) => {
             disabled={isLoading}
             type="submit"
           >
-            {isLoading ? '登入中...' : '登入管理後台'}
+            {isLoading ? (isEn ? 'Logging in...' : '登入中...') : (isEn ? 'Sign in to Admin Console' : '登入管理後台')}
           </button>
         </form>
       </div>

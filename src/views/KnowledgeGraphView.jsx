@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLanguage } from '../i18n';
 import {
   ArrowRight,
   Database,
@@ -102,7 +103,7 @@ const GraphCanvas = ({
   const dragStateRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const title = mode === 'subgraph' ? '查詢子圖' : '全量知識圖譜';
+  const title = mode === 'subgraph' ? (isEn ? 'Query Subgraph' : '查詢子圖') : (isEn ? 'Full Knowledge Graph' : '全量知識圖譜');
   const limitedNodes = nodes.slice(0, mode === 'subgraph' ? 18 : 24);
   const activeEdges = mode === 'subgraph' ? edges : deriveFullGraphEdges(limitedNodes);
   const layout = buildSvgGraphLayout({
@@ -193,14 +194,14 @@ const GraphCanvas = ({
       {loading ? (
         <div className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
           <LoaderCircle size={28} className="mx-auto animate-spin text-emerald-600" />
-          <p className="mt-4 text-lg font-black text-slate-700">圖譜讀取中</p>
-          <p className="mt-2 text-sm text-slate-500">畫布已先顯示，正在等待知識圖譜資料。</p>
+          <p className="mt-4 text-lg font-black text-slate-700">{isEn ? "Loading Graph..." : "圖譜讀取中"}</p>
+          <p className="mt-2 text-sm text-slate-500">{isEn ? "Canvas ready, waiting for knowledge graph data." : "畫布已先顯示，正在等待知識圖譜資料。"}</p>
         </div>
       ) : null}
 
       {!loading && error ? (
         <div className="rounded-[28px] border border-rose-200 bg-rose-50 px-6 py-12 text-center">
-          <p className="text-lg font-black text-rose-700">圖譜載入失敗</p>
+          <p className="text-lg font-black text-rose-700">{isEn ? "Failed to Load Graph" : "圖譜載入失敗"}</p>
           <p className="mt-2 text-sm text-rose-600">{error}</p>
         </div>
       ) : null}
@@ -210,8 +211,8 @@ const GraphCanvas = ({
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900 text-white">
             <Database size={24} />
           </div>
-          <p className="mt-4 text-lg font-black text-slate-700">目前全量圖譜尚未準備完成</p>
-          <p className="mt-2 text-sm text-slate-500">側邊欄仍可保留條件，之後再回來查看全量圖譜。</p>
+          <p className="mt-4 text-lg font-black text-slate-700">{isEn ? "Full graph is not ready yet" : "目前全量圖譜尚未準備完成"}</p>
+          <p className="mt-2 text-sm text-slate-500">{isEn ? "Filter settings remain saved in the sidebar." : "側邊欄仍可保留條件，之後再回來查看全量圖譜。"}</p>
         </div>
       ) : null}
 
@@ -221,7 +222,7 @@ const GraphCanvas = ({
             <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-200">Visual Graph</p>
-                <h3 className="mt-2 text-2xl font-black">{mode === 'subgraph' ? '聚焦子圖' : '全量節點總覽'}</h3>
+                <h3 className="mt-2 text-2xl font-black">{mode === 'subgraph' ? (isEn ? 'Focused Subgraph' : '聚焦子圖') : (isEn ? 'Full Nodes Overview' : '全量節點總覽')}</h3>
                 <p className="mt-2 text-sm text-slate-200">
                   {mode === 'subgraph'
                     ? '目前顯示依 query 生成的子圖，節點與關係都可直接點擊查看細節。'
@@ -263,7 +264,7 @@ const GraphCanvas = ({
                 重置
               </button>
               <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200">
-                縮放 {viewport.scale.toFixed(2)}x
+                {isEn ? `Scale ${viewport.scale.toFixed(2)}x` : `縮放 ${viewport.scale.toFixed(2)}x`}
               </span>
             </div>
 
@@ -353,10 +354,10 @@ const GraphCanvas = ({
             </div>
 
             <div className="flex flex-wrap gap-3 text-xs font-semibold text-slate-300">
-              <span>顯示節點: {layout.nodes.length}</span>
-              <span>顯示連線: {layout.edges.length}</span>
-              <span>互動方式: 滾輪縮放、拖曳平移</span>
-              {nodes.length > layout.nodes.length ? <span>其餘 {nodes.length - layout.nodes.length} 個節點已先收斂。</span> : null}
+              <span>{isEn ? `Nodes: ${layout.nodes.length}` : `顯示節點: ${layout.nodes.length}`}</span>
+              <span>{isEn ? `Edges: ${layout.edges.length}` : `顯示連線: ${layout.edges.length}`}</span>
+              <span>{isEn ? "Scroll to zoom, drag to pan" : "互動方式: 滾輪縮放、拖曳平移"}</span>
+              {nodes.length > layout.nodes.length ? <span>{isEn ? `${nodes.length - layout.nodes.length} other nodes collapsed.` : `其餘 ${nodes.length - layout.nodes.length} 個節點已先收斂。`}</span> : null}
             </div>
           </div>
         </div>
@@ -471,9 +472,9 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
   const modeLabel = buildKnowledgeGraphModeLabel({ mode: graphMode, query: activeQuery });
 
   const selectionSummary = useMemo(() => {
-    if (!selectedItem) return '點一下節點看 neighbors，或在子圖模式點關係看 evidence。';
-    if (selectedItem.type === 'node') return `目前查看節點 ${selectedItem.id}`;
-    return `目前查看關係 ${selectedItem.id}`;
+    if (!selectedItem) return isEn ? 'Click a node to see neighbors, or an edge in subgraph mode to view evidence.' : '點一下節點看 neighbors，或在子圖模式點關係看 evidence。';
+    if (selectedItem.type === 'node') return isEn ? `Viewing node: ${selectedItem.id}` : `目前查看節點 ${selectedItem.id}`;
+    return isEn ? `Viewing relation: ${selectedItem.id}` : `目前查看關係 ${selectedItem.id}`;
   }, [selectedItem]);
 
   const toggleSourceType = (value) => {
@@ -511,7 +512,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
     });
 
     if (!payload.query) {
-      setQueryError('請先輸入提示詞或查詢內容。');
+      setQueryError(isEn ? 'Please enter a query or prompt first.' : '請先輸入提示詞或查詢內容。');
       return;
     }
 
@@ -574,7 +575,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
     setNodeError('');
 
     if (edge.derived) {
-      setRelationError('全量圖譜中的這條線是前端衍生關聯，沒有獨立 evidence 可查。');
+      setRelationError(isEn ? 'This edge in full graph is a frontend derived relation without standalone evidence.' : '全量圖譜中的這條線是前端衍生關聯，沒有獨立 evidence 可查。');
       setRelationLoading(false);
       return;
     }
@@ -602,9 +603,9 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
               Knowledge Graph
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">知識圖譜工作台</h1>
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl">{isEn ? "Knowledge Graph Workbench" : "知識圖譜工作台"}</h1>
               <p className="mt-3 text-sm font-medium leading-6 text-slate-200 sm:text-base">
-                頁面預設會先載入全量 RAG 知識圖譜總覽，之後可從側邊欄生成聚焦子圖，並持續保留節點與關係的細節鑽取。
+                {isEn ? "The page loads a full RAG knowledge graph overview by default. Generate focused subgraphs from the sidebar and explore drill-down node details." : "頁面預設會先載入全量 RAG 知識圖譜總覽，之後可從側邊欄生成聚焦子圖，並持續保留節點與關係的細節鑽取。"}
               </p>
             </div>
           </div>
@@ -622,8 +623,8 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
         <form onSubmit={handleSearch} className="space-y-4 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm">
           <div>
             <p className="text-sm font-semibold text-slate-500">Graph Controls</p>
-            <h2 className="text-2xl font-black text-slate-900">生成子圖</h2>
-            <p className="mt-2 text-sm text-slate-500">預設中心區會顯示全量圖譜；你可以在這裡用提示詞與條件生成新的聚焦子圖。</p>
+            <h2 className="text-2xl font-black text-slate-900">{isEn ? "Generate Subgraph" : "生成子圖"}</h2>
+            <p className="mt-2 text-sm text-slate-500">{isEn ? "The center canvas displays the full graph by default; use prompts and filters here to generate a focused subgraph." : "預設中心區會顯示全量圖譜；你可以在這裡用提示詞與條件生成新的聚焦子圖。"}</p>
           </div>
 
           <label className="block">
@@ -632,7 +633,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               rows={5}
-              placeholder="例如：fiber、broccoli、omega 3"
+              placeholder={isEn ? "e.g., fiber, broccoli, omega 3" : "例如：fiber、broccoli、omega 3"}
               className="w-full rounded-3xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-emerald-400"
             />
           </label>
@@ -658,7 +659,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
               placeholder="doc-upload-1, doc-upload-2"
               className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-emerald-400"
             />
-            <span className="mt-2 block text-xs text-slate-500">以逗號分隔，可留空。</span>
+            <span className="mt-2 block text-xs text-slate-500">{isEn ? "Comma separated, optional." : "以逗號分隔，可留空。"}</span>
           </label>
 
           <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
@@ -697,7 +698,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition disabled:cursor-not-allowed disabled:opacity-60"
             >
               {queryLoading ? <LoaderCircle size={16} className="animate-spin" /> : <Search size={16} />}
-              {queryLoading ? '生成中...' : '生成新子圖'}
+              {queryLoading ? (isEn ? 'Generating...' : '生成中...') : (isEn ? 'Generate Subgraph' : '生成新子圖')}
             </button>
 
             <button
@@ -707,7 +708,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <RefreshCw size={16} />
-              回到全量圖譜
+              {isEn ? "Back to Full Graph" : "回到全量圖譜"}
             </button>
           </div>
         </form>
@@ -732,7 +733,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
 
           {graphMode === 'subgraph' ? (
             <>
-              <SectionCard title="關係" subtitle="Edges / Relations" count={`${edges.length} edges`}>
+              <SectionCard title={isEn ? "Relations" : "關係"} subtitle="Edges / Relations" count={`${edges.length} edges`}>
                 {edges.length ? (
                   <div className="space-y-3">
                     {edges.map((edge) => (
@@ -768,12 +769,12 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
                   </div>
                 ) : (
                   <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                    這次查詢沒有回傳關係。
+                    {isEn ? "No relations returned for this query." : "這次查詢沒有回傳關係。"}
                   </p>
                 )}
               </SectionCard>
 
-              <SectionCard title="證據" subtitle="Evidence" count={`${evidence.length} items`}>
+              <SectionCard title={isEn ? "Evidence" : "證據"} subtitle="Evidence" count={`${evidence.length} items`}>
                 {evidence.length ? (
                   <div className="space-y-3">
                     {evidence.map((item) => (
@@ -794,12 +795,12 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
                   </div>
                 ) : (
                   <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                    這次查詢沒有回傳證據。
+                    {isEn ? "No evidence returned for this query." : "這次查詢沒有回傳證據。"}
                   </p>
                 )}
               </SectionCard>
 
-              <SectionCard title="文件" subtitle="Documents" count={`${documents.length} docs`}>
+              <SectionCard title={isEn ? "Documents" : "文件"} subtitle="Documents" count={`${documents.length} docs`}>
                 {documents.length ? (
                   <div className="space-y-3">
                     {documents.map((document) => (
@@ -827,13 +828,13 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
                   </div>
                 ) : (
                   <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                    這次查詢沒有回傳文件摘要。
+                    {isEn ? "No document summaries returned for this query." : "這次查詢沒有回傳文件摘要。"}
                   </p>
                 )}
               </SectionCard>
             </>
           ) : (
-            <SectionCard title="全量節點" subtitle="All Knowledge Points" count={`${nodes.length} nodes`}>
+            <SectionCard title={isEn ? "All Nodes" : "全量節點"} subtitle="All Knowledge Points" count={`${nodes.length} nodes`}>
               {nodes.length ? (
                 <div className="space-y-3">
                   {nodes.map((node) => (
@@ -866,7 +867,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
                 </div>
               ) : (
                 <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                  全量圖譜目前沒有節點資料。
+                  {isEn ? "Full graph currently has no node data." : "全量圖譜目前沒有節點資料。"}
                 </p>
               )}
             </SectionCard>
@@ -876,7 +877,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
         <aside className="space-y-4 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm">
           <div>
             <p className="text-sm font-semibold text-slate-500">Detail Sidebar</p>
-            <h2 className="text-2xl font-black text-slate-900">延伸細節</h2>
+            <h2 className="text-2xl font-black text-slate-900">{isEn ? "Extended Details" : "延伸細節"}</h2>
             <p className="mt-2 text-sm text-slate-500">{selectionSummary}</p>
           </div>
 
@@ -885,8 +886,8 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900 text-white">
                 <FileText size={24} />
               </div>
-              <p className="mt-4 text-lg font-black text-slate-700">等待選取項目</p>
-              <p className="mt-2 text-sm text-slate-500">點一下節點看 neighbors，或在子圖模式點關係看 evidence。</p>
+              <p className="mt-4 text-lg font-black text-slate-700">{isEn ? "Select an item" : "等待選取項目"}</p>
+              <p className="mt-2 text-sm text-slate-500">{isEn ? "Click a node to view neighbors, or click an edge in subgraph mode to inspect evidence." : "點一下節點看 neighbors，或在子圖模式點關係看 evidence。"}</p>
             </div>
           ) : null}
 
@@ -895,7 +896,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
               {nodeLoading ? (
                 <div className="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm font-semibold text-slate-600">
                   <LoaderCircle size={18} className="mx-auto mb-3 animate-spin" />
-                  載入節點細節中...
+                  {isEn ? "Loading node details..." : "載入節點細節中..."}
                 </div>
               ) : null}
               {nodeError ? (
@@ -936,7 +937,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
                         ))}
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-slate-500">這個節點目前沒有鄰居資料。</p>
+                      <p className="mt-3 text-sm text-slate-500">{isEn ? "This node has no neighbor data." : "這個節點目前沒有鄰居資料。"}</p>
                     )}
                   </div>
 
@@ -956,7 +957,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
                         ))}
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-slate-500">這個節點目前沒有邊資料。</p>
+                      <p className="mt-3 text-sm text-slate-500">{isEn ? "This node has no edge data." : "這個節點目前沒有邊資料。"}</p>
                     )}
                   </div>
 
@@ -972,7 +973,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
                         ))}
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-slate-500">這個節點目前沒有證據資料。</p>
+                      <p className="mt-3 text-sm text-slate-500">{isEn ? "This node has no evidence data." : "這個節點目前沒有證據資料。"}</p>
                     )}
                   </div>
                 </div>
@@ -985,7 +986,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
               {relationLoading ? (
                 <div className="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm font-semibold text-slate-600">
                   <LoaderCircle size={18} className="mx-auto mb-3 animate-spin" />
-                  載入關係證據中...
+                  {isEn ? "Loading relation evidence..." : "載入關係證據中..."}
                 </div>
               ) : null}
               {relationError ? (
@@ -1035,7 +1036,7 @@ const KnowledgeGraphView = ({ apiFetch, role }) => {
                         ))}
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-slate-500">這條關係目前沒有證據資料。</p>
+                      <p className="mt-3 text-sm text-slate-500">{isEn ? "This relation has no evidence data." : "這條關係目前沒有證據資料。"}</p>
                     )}
                   </div>
                 </div>
