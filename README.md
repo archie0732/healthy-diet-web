@@ -1,54 +1,218 @@
-# 🥗 健康飲食管家 (AI Diet Manager)
+<div align="center">
 
-結合 **AI YOLO 視覺辨識**與**大語言模型 (LLM)** 的智能飲食追蹤系統。使用者只需上傳食物照片，系統即可自動辨識食物種類、估算熱量與營養組成，並結合使用者的生理數據與病史，提供客製化的 AI 營養師點評。
+<img src="public/icon.webp" alt="Healthy Diet" width="96" height="96" />
 
-![Project Banner](https://via.placeholder.com/1200x400?text=AI+Diet+Manager+Dashboard) ## ✨ 核心功能
+# Healthy Diet Web
 
-* 📸 **AI YOLO 視覺辨識**：前端內建圖片壓縮引擎，上傳食物照片後，後端透過 YOLO 模型自動框選食物、預估重量並計算卡路里。
-* 📊 **智能健康儀表板**：
-    * 自動計算精準的 **BMI** 與 **BMR (基礎代謝率)**，並支援詳細公式的互動式翻牌顯示。
-    * 提供雷達圖 (六大類食物比例)、圓餅圖 (最新一餐結構) 與折線圖 (AI 評分趨勢)。
-* 💬 **AI 專屬營養師**：根據使用者的飲食紀錄與個人設定檔案，給予針對性的健康評語。
-* ⚙️ **高度客製化個人檔案**：可設定疾病史、過敏源與飲食禁忌，讓 AI 評估更加精準。
-* 🔒 **完善的會員系統**：基於 JWT (JSON Web Tokens) 的安全登入驗證機制。
-* 🛡️ **展示模式防護**：內建「測試猿」展示帳號（具備唯讀防護機制），確保 Demo 資料的一致性。
-* 📈 **流量監控**：即時統計並繪製網站的近 30 天造訪人次走勢圖。
+**An AI-powered personal nutrition platform: snap a meal, get instant nutrition analysis, and talk to an AI dietitian.**
 
-## 🛠️ 技術棧 (Tech Stack)
+[![Live Demo](https://img.shields.io/badge/demo-healthy--diet--web.vercel.app-000?logo=vercel&logoColor=white)](https://healthy-diet-web.vercel.app)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Backend](https://img.shields.io/github/stars/archie0732/healthy-diet-ai-agent?label=backend%20%E2%98%85%20healthy-diet-ai-agent&logo=github)](https://github.com/archie0732/healthy-diet-ai-agent)
 
-### 前端 (Frontend)
-* **框架**: React.js (Vite)
-* **路由**: React Router v6
-* **樣式**: Tailwind CSS
-* **圖表**: Recharts (LineChart, PieChart, RadarChart)
-* **UI 組件**: Lucide React (Icons), shadcn/ui (Sidebar, Tooltips)
-* **特點**: 實作前端圖片自動壓縮 (Canvas API)、響應式設計 (RWD)、複雜狀態管理。
+[Live Demo](https://healthy-diet-web.vercel.app) · [Backend](https://github.com/archie0732/healthy-diet-ai-agent) · [Report an Issue](https://github.com/archie0732/healthy-diet-web/issues)
 
-### 後端 (Backend)
-* **語言**: Rust
-* **框架**: Axum (高效能非同步 Web 框架)
-* **資料庫**: PostgreSQL + SQLx (非同步 SQL 工具)
-* **驗證**: jsonwebtoken (JWT)
-* **特點**: 高效能併發處理、Base64 圖片流傳輸、自定義 Error Response 處理機制。
+**English** · [繁體中文](README.zh-TW.md)
 
-### 人工智慧 (AI & ML)
-* **電腦視覺**: YOLO (You Only Look Once) 用於物件偵測與熱量估算。
-* **LLM 分析**: 結合 Prompt Engineering 產生 `ai_evaluation` 健康評分與建議。
+</div>
 
 ---
 
-## 🚀 快速開始 (Getting Started)
+> [!IMPORTANT]
+> **September 2026 architecture change: the backend now lives in [`archie0732/healthy-diet-ai-agent`](https://github.com/archie0732/healthy-diet-ai-agent).**
+>
+> Maintaining several projects in parallel (Rust API, YOLO inference service, Flutter app and agent service) became too costly. The Rust API in [`PU-Hub/healthy-diet`](https://github.com/PU-Hub/healthy-diet) was retired in September 2026, and every API is now served by **healthy-diet-ai-agent** (⭐ 751+).
+> This repository (the web frontend) remains actively maintained and is the primary user interface for Healthy Diet.
+>
+> The planned **Flutter mobile app has been discontinued** because its maintainers could not commit the time. Mobile users are served by this project's responsive web UI instead.
 
-### 1. 啟動前端伺服器
+## Table of Contents
 
-確保你的電腦已安裝 Node.js。
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Project Structure](#project-structure)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Project History](#project-history)
+- [Related Projects](#related-projects)
+- [Team](#team)
+
+## Overview
+
+Healthy Diet combines **computer vision (YOLO)**, **large language models (LLMs)** and **retrieval-augmented generation (RAG)**. Take a photo of your meal and you get food recognition, calorie and nutrient estimates, and AI nutrition advice tailored to your body metrics and medical history.
+
+This repository is the Healthy Diet web frontend. It is built with React 19 and Vite, talks to the backend agent service through a Vercel serverless proxy, ships both a user app and a full admin console, and supports English and Traditional Chinese.
+
+## Features
+
+### For users
+
+| Feature | Description |
+| --- | --- |
+| 📸 **Meal recognition** | Images are compressed client-side with the Canvas API before upload. A YOLO model detects each food item, estimates portion size and converts it to calories and nutrients. |
+| 📊 **Health dashboard** | Automatic BMI / BMR calculation (with interactive flip cards showing the formulas), plus radar, pie and line charts for food-group balance, per-meal composition and AI score trends. |
+| 💬 **AI dietitian** | Multiple chat rooms, conversation history, and Markdown / KaTeX math rendering. When the agent proposes a profile change, the user must approve it in a confirmation dialog (human-in-the-loop). |
+| 🔎 **Knowledge search (RAG)** | Semantic search over a nutrition and health knowledge base, with previews of cited source documents. |
+| 🕸️ **Knowledge graph** | Visual exploration of nutrition concepts and their relationships, each traceable back to its source evidence. |
+| 📰 **Health news** | Automatically synced food and drug news with list and full-article views. |
+| ⚙️ **Health profile** | Height, weight, medical history, allergies and dietary restrictions, all fed into the AI's evaluation. |
+| 🌐 **Internationalization** | English and Traditional Chinese, switchable at runtime. |
+
+### Admin console (`/admin`)
+
+- **User management**: browse users and view their details.
+- **Route controls**: turn expensive features such as image recognition and chat on or off at runtime, with no redeploy.
+- **Announcements**: create, edit, publish and archive site-wide announcements.
+- **RAG documents**: upload, preview, re-index and delete knowledge-base documents.
+- **News tools**: trigger news syncs manually and debug them.
+
+### Security and reliability
+
+- JWT authentication (access and refresh tokens) with separate user and admin roles.
+- Every API call goes through a same-origin serverless proxy, so the backend address is never exposed to the browser. Server-sent event (SSE) streaming is supported.
+- The dashboard's agent health check is cached and gated, which avoids piling up requests while the backend cold-starts.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[User / Admin<br/>Browser] -->|HTTPS| W[Healthy Diet Web<br/>React 19 + Vite<br/>Vercel]
+    W -->|/api/*  /auth/*  /admin/*| P[Vercel Serverless Proxy<br/>api/proxy.js]
+    P -->|REST / SSE| A[healthy-diet-ai-agent<br/>API + AI Agent]
+    A --> Y[YOLO food recognition]
+    A --> L[LLM nutrition analysis]
+    A --> R[(RAG knowledge base<br/>Knowledge graph)]
+    A --> D[(PostgreSQL)]
+```
+
+> Before September 2026, the `P → A` hop was handled by the Rust (Axum) API in `PU-Hub/healthy-diet`. It is now served entirely by `healthy-diet-ai-agent`.
+
+## Tech Stack
+
+| Area | Technology |
+| --- | --- |
+| Framework | React 19, Vite 8 |
+| Routing | React Router 7 |
+| Styling / UI | Tailwind CSS 4, shadcn/ui, Radix UI, Lucide Icons, Geist font |
+| Data visualization | Recharts (LineChart / PieChart / RadarChart) |
+| Content rendering | react-markdown, remark-gfm, remark-math, rehype-katex |
+| i18n | Custom `LanguageContext` (`en` / `zh`) |
+| Hosting | Vercel (static site + serverless function proxy) |
+| Testing | Node.js built-in test runner (`node:test`) |
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js **20+**
+- npm 10+
+- A reachable backend: [`healthy-diet-ai-agent`](https://github.com/archie0732/healthy-diet-ai-agent), local or remote
+
+### Install and run
 
 ```bash
+git clone https://github.com/archie0732/healthy-diet-web.git
+cd healthy-diet-web
 
-# 安裝依賴套件
 npm install
 
-# 啟動開發伺服器
-npm run dev
+# Point the app at your backend (see "Environment Variables")
+echo "VITE_API_BASE=http://localhost:3000" > .env.local
 
+npm run dev
 ```
+
+Open <http://localhost:5173>. In development, Vite proxies `/api`, `/api/auth`, `/api/admin` and `/openapi.yml` to `VITE_API_BASE`, so you won't hit CORS issues.
+
+### Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the dev server with HMR |
+| `npm run build` | Build for production into `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint |
+
+## Environment Variables
+
+| Variable | Used by | Description |
+| --- | --- | --- |
+| `VITE_API_BASE` | Vite dev server, serverless proxy | Backend API base URL, e.g. `http://localhost:3000` or your production agent service URL. |
+| `API_BASE` | Serverless proxy | Optional. Fallback when `VITE_API_BASE` is not set. |
+| `TARGET_API_SERVER` | Serverless proxy | Optional. Second fallback. |
+
+The proxy uses the first non-empty value in the order `VITE_API_BASE → API_BASE → TARGET_API_SERVER`.
+
+## Project Structure
+
+```text
+healthy-diet-web/
+├── api/
+│   ├── proxy.js             # Vercel serverless proxy (with SSE streaming)
+│   └── proxy.test.js
+├── docs/                    # Frontend/backend integration handoffs and gap analysis
+├── public/                  # Static assets (icons, team photos, demo video)
+├── src/
+│   ├── components/          # Layout, sidebar, profile-approval dialog, shadcn/ui components
+│   ├── hooks/
+│   ├── i18n/                # Language context and en / zh translations
+│   ├── lib/                 # API client, auth session, chat, knowledge graph logic (with unit tests)
+│   ├── views/               # Pages: Dashboard, Diet, Consult, News, Knowledge…
+│   │   └── admin/           # Admin console pages
+│   ├── App.jsx              # Routes and global state
+│   └── main.jsx
+├── vercel.json              # Route rewrites and function config
+└── vite.config.js           # Dev proxy and path alias (@ → src)
+```
+
+## Testing
+
+Tests use Node's built-in `node:test`, so no extra test framework is needed:
+
+```bash
+node --test
+```
+
+The suite covers API URL resolution, proxy forwarding and streaming, chat message handling, knowledge graph data transforms and the dashboard health-check cache. Please make sure both `npm run lint` and `node --test` pass before opening a pull request.
+
+## Deployment
+
+The project is built for **Vercel**:
+
+1. Import this repository into Vercel and choose the **Vite** framework preset.
+2. Under Project Settings → Environment Variables, set `VITE_API_BASE` to your production `healthy-diet-ai-agent` URL.
+3. Once deployed, `vercel.json` automatically:
+   - routes `/api/*`, `/api/auth/*`, `/api/admin/*` and `/openapi.yml` to `api/proxy.js` (60-second max duration, enough for long LLM responses);
+   - falls back to `index.html` for every other path so client-side routing works.
+
+## Project History
+
+| When | Milestone |
+| --- | --- |
+| Early stage | Multi-repo architecture: Rust API ([`PU-Hub/healthy-diet`](https://github.com/PU-Hub/healthy-diet)) + YOLO inference + Flutter app + web frontend |
+| 2026-05 | Web frontend adds AI agent chat rooms, announcements and the profile-approval flow |
+| 2026-06 | News sync, RAG search, knowledge graph and admin console integrated |
+| — | Flutter app discontinued because its maintainers could not commit the time; mobile is covered by the responsive web UI |
+| **2026-09** | **Rust API retired; backend consolidated into [`healthy-diet-ai-agent`](https://github.com/archie0732/healthy-diet-ai-agent)** |
+
+## Related Projects
+
+| Repository | Status | Description |
+| --- | --- | --- |
+| [`archie0732/healthy-diet-web`](https://github.com/archie0732/healthy-diet-web) | 🟢 Active | Web frontend (this repository) |
+| [`archie0732/healthy-diet-ai-agent`](https://github.com/archie0732/healthy-diet-ai-agent) | 🟢 Active | API and AI agent service (⭐ 751+) |
+| [`PU-Hub/healthy-diet`](https://github.com/PU-Hub/healthy-diet) | ⚫ Unmaintained | Legacy Rust API, YOLO inference and Flutter app |
+
+## Team
+
+Healthy Diet is built by the PU-Hub team. Bug reports and suggestions are welcome in [Issues](https://github.com/archie0732/healthy-diet-web/issues), and pull requests are welcome too.
+
+<div align="center">
+<sub>If this project helps you, consider giving <a href="https://github.com/archie0732/healthy-diet-ai-agent">healthy-diet-ai-agent</a> a ⭐</sub>
+</div>
