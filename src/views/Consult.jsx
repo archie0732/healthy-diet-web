@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../i18n';
-import { MessageSquare, Activity, Send, BrainCircuit, Flag, Plus, X, Menu, BotMessageSquare, ImagePlus } from 'lucide-react';
+import { MessageSquare, Activity, Send, BrainCircuit, Flag, Plus, X, Menu, BotMessageSquare, ImagePlus, UserRoundPen } from 'lucide-react';
+import ProfileApprovalDialog from '@/components/ProfileApprovalDialog';
 
 // ?舀 Markdown?”?潸? LaTeX 憿舐內
 import ReactMarkdown from 'react-markdown';
@@ -72,6 +73,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
   const [isRoomLoading, setIsRoomLoading] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(null);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
 
   const activeRoomTitle = rooms.find((room) => room.id === activeRoomId)?.title || (isEn ? 'New Chat' : '新聊天室');
   const normalizeRooms = (data) => {
@@ -478,18 +480,62 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
     return null;
   };
 
-  const approvalFieldLabelMap = {
-    nickname_to_set: '暱稱',
-    avatar_url_to_set: '頭像',
-    height_to_set: '身高',
-    weight_to_set: '體重',
-    age_to_set: '年齡',
-    gender_to_set: '性別',
-    taboo_to_add: '忌口',
-    disease_to_add: '疾病史',
+  const approvalFieldMeta = {
+    nickname_to_set: { zh: '暱稱', en: 'Nickname', profileKey: 'nickname' },
+    avatar_url_to_set: { zh: '頭像', en: 'Avatar', profileKey: 'avatar_url' },
+    height_to_set: { zh: '身高', en: 'Height', profileKey: 'height', unit: 'cm' },
+    weight_to_set: { zh: '體重', en: 'Weight', profileKey: 'weight', unit: 'kg' },
+    age_to_set: { zh: '年齡', en: 'Age', profileKey: 'age' },
+    gender_to_set: { zh: '性別', en: 'Gender', profileKey: 'gender' },
+    taboo_to_add: { zh: '忌口', en: 'Food taboo' },
+    taboo_to_remove: { zh: '忌口', en: 'Food taboo' },
+    disease_to_add: { zh: '疾病史', en: 'Condition' },
+    disease_to_remove: { zh: '疾病史', en: 'Condition' },
   };
 
-  const toApprovalActionLabel = (action) => (action === 'add' ? '新增' : '設定');
+  const resolveApprovalAction = (field, rawAction) => {
+    if (rawAction === 'add' || rawAction === 'remove' || rawAction === 'set') return rawAction;
+    if (field.endsWith('_to_add')) return 'add';
+    if (field.endsWith('_to_remove')) return 'remove';
+    return 'set';
+  };
+
+  const toApprovalActionLabel = (action) => {
+    if (action === 'add') return isEn ? 'Add' : '新增';
+    if (action === 'remove') return isEn ? 'Remove' : '移除';
+    return isEn ? 'Set' : '設定';
+  };
+
+  const resolveApprovalLabel = (field, backendLabel) => {
+    const meta = approvalFieldMeta[field];
+    if (meta) return isEn ? meta.en : meta.zh;
+    return typeof backendLabel === 'string' && backendLabel.trim() ? backendLabel.trim() : field;
+  };
+
+  const resolveCurrentProfileValue = (field) => {
+    const meta = approvalFieldMeta[field];
+    if (!meta?.profileKey || !user) return '';
+    const current = user[meta.profileKey];
+    if (current === null || current === undefined || current === '') return '';
+    return meta.unit ? `${current} ${meta.unit}` : String(current);
+  };
+
+  const withApprovalUnit = (field, formattedValue) => {
+    const unit = approvalFieldMeta[field]?.unit;
+    return unit && /^\d+(\.\d+)?$/.test(formattedValue) ? `${formattedValue} ${unit}` : formattedValue;
+  };
+
+  const buildApprovalItem = (field, rawAction, value, backendLabel) => {
+    const action = resolveApprovalAction(field, rawAction);
+    return {
+      field,
+      label: resolveApprovalLabel(field, backendLabel),
+      action,
+      actionLabel: toApprovalActionLabel(action),
+      value: withApprovalUnit(field, formatApprovalValue(value)),
+      currentValue: action === 'set' ? resolveCurrentProfileValue(field) : '',
+    };
+  };
 
   const formatApprovalValue = (value) => {
     if (value === null || value === undefined || value === '') return 'N/A';
@@ -539,31 +585,14 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
           const field = typeof item.field === 'string' ? item.field : '';
           if (!field) return null;
 
-          const action = item.action === 'add' ? 'add' : 'set';
           const value = Object.prototype.hasOwnProperty.call(item, 'value') ? item.value : '';
-          const defaultLabel = approvalFieldLabelMap[field] || field;
-          const label = typeof item.label === 'string' && item.label.trim() ? item.label.trim() : defaultLabel;
-
-          return {
-            field,
-            label,
-            action,
-            actionLabel: toApprovalActionLabel(action),
-            value: formatApprovalValue(value),
-          };
+          return buildApprovalItem(field, item.action, value, item.label);
         })
         .filter(Boolean);
     } else if (proposalRaw && typeof proposalRaw === 'object' && !Array.isArray(proposalRaw)) {
-      proposalItems = Object.entries(proposalRaw).map(([field, value]) => {
-        const action = field.endsWith('_to_add') ? 'add' : 'set';
-        return {
-          field,
-          label: approvalFieldLabelMap[field] || field,
-          action,
-          actionLabel: toApprovalActionLabel(action),
-          value: formatApprovalValue(value),
-        };
-      });
+      proposalItems = Object.entries(proposalRaw)
+        .filter(([, value]) => value !== null && value !== undefined && value !== '')
+        .map(([field, value]) => buildApprovalItem(field, null, value));
     }
 
     const prompt =
@@ -575,7 +604,24 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
       ?? data?.prompt
       ?? (isEn ? 'AI suggests updating your profile. Please confirm.' : 'AI 建議更新你的個人資料，請先確認是否同意。');
 
-    return { approvalId, prompt, proposalItems };
+    // The backend prompt is "<question>\n<summary lines>"; the dialog renders the
+    // summary as structured rows, so only the first line is used as description.
+    const description = proposalItems.length > 0
+      ? (isEn ? '' : String(prompt).split('\n')[0].trim())
+      : '';
+
+    return { approvalId, prompt, description, proposalItems };
+  };
+
+  const openApproval = (approval) => {
+    setPendingApproval(approval);
+    setIsApprovalDialogOpen(true);
+  };
+
+  const clearApproval = () => {
+    setPendingApproval(null);
+    setIsApprovalDialogOpen(false);
+    latestApprovalIdRef.current = null;
   };
 
   const appendStandaloneAiMessage = (content) => {
@@ -656,8 +702,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
 
       const responseStatus = String(responseData?.status || '').toLowerCase();
       if (responseStatus === 'not_found') {
-        setPendingApproval(null);
-        latestApprovalIdRef.current = null;
+        clearApproval();
         showNotification(responseData?.message || '找不到待處理的個人資料更新。', 'warning');
         return;
       }
@@ -671,8 +716,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         await fetchProfile();
       }
 
-      setPendingApproval(null);
-      latestApprovalIdRef.current = null;
+      clearApproval();
       await refreshRoomsFromServer(activeRoomId);
       showNotification(
         action === 'approve'
@@ -834,7 +878,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
           ?? false;
 
         if (approvalPending) {
-          setPendingApproval(normalizeApproval(data));
+          openApproval(normalizeApproval(data));
           setAiStatusType('interrupt');
           setAiStatusContent('等待你確認個人資料更新');
         } else {
@@ -907,7 +951,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               setAiStatusContent(content || 'AI 思考中...');
             } else if (eventType === 'interrupt') {
               const approval = normalizeApproval(data);
-              setPendingApproval(approval);
+              openApproval(approval);
               setIsThinking(false);
               setAiStatusType('interrupt');
               setAiStatusContent(approval?.prompt || content || '等待你確認個人資料更新');
@@ -924,7 +968,7 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
               }
               setIsThinking(false);
               if (approvalPending) {
-                setPendingApproval(normalizeApproval(data));
+                openApproval(normalizeApproval(data));
                 setAiStatusType('interrupt');
                 setAiStatusContent('等待你確認個人資料更新');
               } else {
@@ -970,13 +1014,13 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             if (nextToolCall) {
               setToolCalls((prev) => mergeConsultToolCall(prev, nextToolCall));
             }
-            setAiStatusContent(content || 'AI ?葉...');
+            setAiStatusContent(content || 'AI 思考中...');
           } else if (eventType === 'interrupt') {
             const approval = normalizeApproval(data);
-            setPendingApproval(approval);
+            openApproval(approval);
             setIsThinking(false);
             setAiStatusType('interrupt');
-            setAiStatusContent(approval?.prompt || content || '蝑?雿Ⅱ隤犖鞈??湔');
+            setAiStatusContent(isEn ? 'Waiting for your profile update confirmation' : '等待你確認個人資料更新');
           } else if (eventType === 'done') {
             const approvalPending =
               data?.approval_pending
@@ -990,15 +1034,15 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
             }
             setIsThinking(false);
             if (approvalPending) {
-              setPendingApproval(normalizeApproval(data));
+              openApproval(normalizeApproval(data));
               setAiStatusType('interrupt');
-              setAiStatusContent('蝑?雿Ⅱ隤犖鞈??湔');
+              setAiStatusContent(isEn ? 'Waiting for your profile update confirmation' : '等待你確認個人資料更新');
             } else {
               setAiStatusType('');
               setAiStatusContent('');
             }
           } else if (eventType === 'error') {
-            const message = content || data?.message || data?.error || 'AI ??憭望?嚗?蝔??岫';
+            const message = content || data?.message || data?.error || 'AI 回覆失敗，請稍後再試';
             setIsThinking(false);
             setAiStatusType('');
             setAiStatusContent('');
@@ -1299,65 +1343,16 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
           )}
         </div>
 
-        {pendingApproval && (
-          <div className="absolute inset-0 z-[70] flex items-center justify-center bg-slate-900/30 p-4">
-            <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{isEn ? "Confirmation Required" : "需要確認"}</p>
-                <h3 className="text-xl font-semibold text-slate-900">{isEn ? "Confirm Profile Update" : "確認個人資料更新"}</h3>
-                <p className="text-sm text-slate-600">
-                  {pendingApproval.prompt || (isEn ? 'Please confirm the suggested profile updates before proceeding.' : '請先確認建議更新的個人資料內容，再決定是否繼續。')}
-                </p>
-                {approvalActionId ? (
-                  <p className="text-xs text-slate-400">approval_id: {approvalActionId}</p>
-                ) : (
-                  <p className="text-xs text-rose-500">{isEn ? "Missing approval_id." : "缺少 approval_id。"}</p>
-                )}
-              </div>
-
-              {pendingApproval.proposalItems?.length > 0 && (
-                <div className="mt-4 max-h-52 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">{isEn ? "Update Details" : "更新內容"}</p>
-                  <div className="space-y-2">
-                    {pendingApproval.proposalItems.map((item) => (
-                      <div key={`${item.field}-${item.value}`} className="grid grid-cols-[98px_76px_1fr] gap-2 text-sm">
-                        <span className="break-words font-medium text-slate-700">{item.label}</span>
-                        <span className="break-words text-slate-500">{item.actionLabel}</span>
-                        <span className="break-words text-slate-600">{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-5 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setPendingApproval(null); latestApprovalIdRef.current = null; }}
-                  disabled={isSubmittingApproval}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleApproveAction('reject')}
-                  disabled={isSubmittingApproval || !approvalActionId}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                >
-                  拒絕
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleApproveAction('approve')}
-                  disabled={isSubmittingApproval || !approvalActionId}
-                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
-                >
-                  {isSubmittingApproval ? (isEn ? 'Submitting...' : '送出中...') : (isEn ? 'Approve' : '同意')}
-                </button>
-              </div>
-            </div>
-          </div>
+        {pendingApproval && isApprovalDialogOpen && (
+          <ProfileApprovalDialog
+            approval={pendingApproval}
+            approvalId={approvalActionId}
+            isSubmitting={isSubmittingApproval}
+            isEn={isEn}
+            onApprove={() => handleApproveAction('approve')}
+            onReject={() => handleApproveAction('reject')}
+            onCancel={() => setIsApprovalDialogOpen(false)}
+          />
         )}
 
         {selectedImage && (
@@ -1375,6 +1370,21 @@ const Consult = ({ user, apiFetch, fetchProfile, showNotification }) => {
         )}
 
         <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
+          {pendingApproval && !isApprovalDialogOpen && (
+            <div className="mx-auto mb-3 flex max-w-3xl items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+              <span className="inline-flex min-w-0 items-center gap-2">
+                <UserRoundPen size={16} className="shrink-0" />
+                <span className="truncate">{isEn ? 'A profile update is waiting for your confirmation.' : '有一項個人資料更新等待你確認'}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsApprovalDialogOpen(true)}
+                className="shrink-0 rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-700"
+              >
+                {isEn ? 'Review' : '查看'}
+              </button>
+            </div>
+          )}
           <form onSubmit={handleAsk} className="mx-auto flex max-w-3xl items-end gap-3">
             <input
               type="file"
